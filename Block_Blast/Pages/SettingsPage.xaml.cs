@@ -6,10 +6,8 @@ namespace Block_Blast.Pages;
 
 public partial class SettingsPage : ContentPage
 {
-    // ══════════════════════════════════════════════════════════
-    //  Сервисы
-    // ══════════════════════════════════════════════════════════
 
+   
     private readonly ThemeService _themeService;
 
     // ══════════════════════════════════════════════════════════
@@ -36,6 +34,8 @@ public partial class SettingsPage : ContentPage
     public SettingsPage(ThemeService themeService)
     {
         _themeService = themeService;
+        
+
 
         BuildUI();
         PrepareForEntrance();
@@ -242,6 +242,8 @@ public partial class SettingsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        LanguageService.LanguageChanged += ApplyLocalization;
+        ApplyLocalization();
 
         _isNavigating = false;
 
@@ -256,6 +258,7 @@ public partial class SettingsPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        LanguageService.LanguageChanged -= ApplyLocalization; // важно — отписаться!
     }
 
     // ══════════════════════════════════════════════════════════
@@ -402,12 +405,7 @@ public partial class SettingsPage : ContentPage
             btn.Clicked += async (s, e) =>
             {
                 await AnimateButtonPress(btn);
-
-                var culture = new CultureInfo(code);
-                Thread.CurrentThread.CurrentCulture = culture;
-                Thread.CurrentThread.CurrentUICulture = culture;
-
-                ApplyLocalization();
+                LanguageService.ChangeLanguage(code);
                 BuildLanguageButtons();
             };
 

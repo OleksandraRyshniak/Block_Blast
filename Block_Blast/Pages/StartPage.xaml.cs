@@ -169,7 +169,10 @@ public partial class StartPage : ContentPage
 
     protected override async void OnAppearing()
     {
+
         base.OnAppearing();
+        LanguageService.LanguageChanged += ApplyLocalization;
+        ApplyLocalization();
 
         _isNavigating = false;
 
@@ -182,6 +185,7 @@ public partial class StartPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        LanguageService.LanguageChanged -= ApplyLocalization; // важно — отписаться!
         EntryName.Unfocus();
     }
 
