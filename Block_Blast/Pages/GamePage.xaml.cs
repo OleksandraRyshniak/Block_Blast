@@ -2,6 +2,7 @@
 using Block_Blast.Models;
 using Block_Blast.Resources.Localization;
 using Block_Blast.Services;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Layouts;
 
 namespace Block_Blast.Pages;
@@ -9,31 +10,23 @@ namespace Block_Blast.Pages;
 public partial class GamePage : ContentPage
 {
     // ══════════════════════════════════════════════════════════
-    // Константы
+    // CONSTANTS
     // ══════════════════════════════════════════════════════════
 
     private const int CellSize = 36;
-    private const int MiniCellSize = 20;
+    private const int BlockAreaSize = 100;
+    private const int MiniCellSize = 22;
 
     // ══════════════════════════════════════════════════════════
-    // Поля
+    // SERVICES
     // ══════════════════════════════════════════════════════════
 
     private readonly ThemeService _themeService;
     private readonly ScoreService _scoreService;
     private readonly Game _game;
 
-    private int _draggedBlockIndex = -1;
-    private BoxView[,] _cellViews;
-
-    // Drag & Drop
-    private AbsoluteLayout _overlay;
-    private View _dragProxy;
-    private double _dragStartX, _dragStartY;
-    private double _scoreGridHeight = 80;
-
     // ══════════════════════════════════════════════════════════
-    // UI элементы
+    // UI
     // ══════════════════════════════════════════════════════════
 
     private Label LblScoreTitle;
@@ -43,16 +36,22 @@ public partial class GamePage : ContentPage
 
     private Grid GameGrid;
 
-    private Frame Block0Frame;
-    private Frame Block1Frame;
-    private Frame Block2Frame;
+    private readonly ContentView[] BlockContainers = new ContentView[3];
 
-    private Grid Block0Grid;
-    private Grid Block1Grid;
-    private Grid Block2Grid;
+    private BoxView[,] _cellViews;
 
     // ══════════════════════════════════════════════════════════
-    // Конструктор
+    // DRAG STATE
+    // ══════════════════════════════════════════════════════════
+
+    private AbsoluteLayout _rootAbsolute;
+    private Border _ghostView;
+    private int _draggingIndex = -1;
+    private bool _isDragging;
+    private Point _ghostStartPos;
+
+    // ══════════════════════════════════════════════════════════
+    // CONSTRUCTOR
     // ══════════════════════════════════════════════════════════
 
     public GamePage(
@@ -62,6 +61,7 @@ public partial class GamePage : ContentPage
     {
         _themeService = themeService;
         _scoreService = scoreService;
+
         _game = new Game(player);
 
         BuildUI();
@@ -73,7 +73,7 @@ public partial class GamePage : ContentPage
     }
 
     // ══════════════════════════════════════════════════════════
-    // UI
+    // UI BUILD
     // ══════════════════════════════════════════════════════════
 
     private void BuildUI()
@@ -114,7 +114,7 @@ public partial class GamePage : ContentPage
             HorizontalOptions = LayoutOptions.Center
         };
 
-        var scoreGrid = new Grid
+        var scoreRow = new Grid
         {
             ColumnDefinitions =
             {
@@ -124,14 +124,8 @@ public partial class GamePage : ContentPage
             Padding = new Thickness(10)
         };
 
-        // Замеряем реальную высоту scoreGrid для точного позиционирования drag-proxy
-        scoreGrid.SizeChanged += (s, e) =>
-        {
-            _scoreGridHeight = scoreGrid.Height;
-        };
-
-        scoreGrid.Add(new VerticalStackLayout { Children = { LblScoreTitle, LblScore } }, 0, 0);
-        scoreGrid.Add(new VerticalStackLayout { Children = { LblBestTitle, LblBest } }, 1, 0);
+        scoreRow.Add(new VerticalStackLayout { Children = { LblScoreTitle, LblScore } }, 0, 0);
+        scoreRow.Add(new VerticalStackLayout { Children = { LblBestTitle, LblBest } }, 1, 0);
 
         GameGrid = new Grid
         {
@@ -141,80 +135,57 @@ public partial class GamePage : ContentPage
             ColumnSpacing = 0
         };
 
-        Block0Grid = CreateMiniGrid();
-        Block1Grid = CreateMiniGrid();
-        Block2Grid = CreateMiniGrid();
-
-        Block0Frame = CreateBlockFrame(Block0Grid);
-        Block1Frame = CreateBlockFrame(Block1Grid);
-        Block2Frame = CreateBlockFrame(Block2Grid);
-
-        var blocksLayout = new HorizontalStackLayout
+        var blocksRow = new HorizontalStackLayout
         {
-            Spacing = 20,
-            HorizontalOptions = LayoutOptions.Center,
-            Children = { Block0Frame, Block1Frame, Block2Frame }
-        };
-
-        var pageContent = new ScrollView
-        {
-            Content = new VerticalStackLayout
-            {
-                Padding = new Thickness(20, 50, 20, 20),
-                Spacing = 25,
-                Children = { scoreGrid, GameGrid, blocksLayout }
-            }
-        };
-
-        // Overlay поверх всего для drag-proxy
-        _overlay = new AbsoluteLayout
-        {
-            InputTransparent = true,
-            IsVisible = false
-        };
-
-        var root = new AbsoluteLayout();
-
-        AbsoluteLayout.SetLayoutBounds(pageContent, new Rect(0, 0, 1, 1));
-        AbsoluteLayout.SetLayoutFlags(pageContent, AbsoluteLayoutFlags.All);
-
-        AbsoluteLayout.SetLayoutBounds(_overlay, new Rect(0, 0, 1, 1));
-        AbsoluteLayout.SetLayoutFlags(_overlay, AbsoluteLayoutFlags.All);
-
-        root.Children.Add(pageContent);
-        root.Children.Add(_overlay);
-
-        Content = root;
-    }
-
-    private Grid CreateMiniGrid()
-    {
-        return new Grid
-        {
-            RowSpacing = 0,
-            ColumnSpacing = 0,
+            Spacing = 25,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
         };
-    }
 
-    private Frame CreateBlockFrame(Grid content)
-    {
-        return new Frame
+        for (int i = 0; i < 3; i++)
         {
-            Padding = 8,
-            CornerRadius = 12,
-            BackgroundColor = Colors.DimGray,
-            BorderColor = Colors.White,
-            HasShadow = true,
-            Content = content,
-            WidthRequest = 90,
-            HeightRequest = 90
+            var container = new ContentView
+            {
+                WidthRequest = BlockAreaSize,
+                HeightRequest = BlockAreaSize,
+                BackgroundColor = Colors.Transparent,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            };
+
+            BlockContainers[i] = container;
+            blocksRow.Children.Add(container);
+        }
+
+        var pageContentGrid = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Star),
+                new RowDefinition(GridLength.Auto)
+            },
+            Padding = new Thickness(20, 50, 20, 30),
+            RowSpacing = 20
         };
+
+        pageContentGrid.Add(scoreRow, 0, 0);
+        pageContentGrid.Add(GameGrid, 0, 1);
+        pageContentGrid.Add(blocksRow, 0, 2);
+
+        // AbsoluteLayout как корень — необходим для ghost view
+        _rootAbsolute = new AbsoluteLayout();
+
+        AbsoluteLayout.SetLayoutBounds(pageContentGrid, new Rect(0, 0, 1, 1));
+        AbsoluteLayout.SetLayoutFlags(pageContentGrid, AbsoluteLayoutFlags.SizeProportional);
+
+        _rootAbsolute.Add(pageContentGrid);
+
+        Content = _rootAbsolute;
     }
 
     // ══════════════════════════════════════════════════════════
-    // Жизненный цикл
+    // LIFECYCLE
     // ══════════════════════════════════════════════════════════
 
     protected override void OnAppearing()
@@ -222,11 +193,13 @@ public partial class GamePage : ContentPage
         base.OnAppearing();
 
         LanguageService.LanguageChanged += ApplyLocalization;
+
         ApplyLocalization();
         ApplyTheme();
-
         BuildBoard();
+
         _game.Start();
+
         DrawBoard();
         DrawNextBlocks();
     }
@@ -236,20 +209,14 @@ public partial class GamePage : ContentPage
         base.OnDisappearing();
 
         LanguageService.LanguageChanged -= ApplyLocalization;
+
         _game.ScoreChanged -= OnScoreChanged;
         _game.BoardUpdated -= OnBoardUpdated;
         _game.LinesCleared -= OnLinesCleared;
         _game.GameOver -= OnGameOver;
     }
 
-    // ══════════════════════════════════════════════════════════
-    // Тема и локализация
-    // ══════════════════════════════════════════════════════════
-
-    private void ApplyTheme()
-    {
-        _themeService.Current.Apply(this);
-    }
+    private void ApplyTheme() => _themeService.Current.Apply(this);
 
     private void ApplyLocalization()
     {
@@ -258,7 +225,7 @@ public partial class GamePage : ContentPage
     }
 
     // ══════════════════════════════════════════════════════════
-    // Поле
+    // BOARD
     // ══════════════════════════════════════════════════════════
 
     private void BuildBoard()
@@ -285,7 +252,7 @@ public partial class GamePage : ContentPage
                 {
                     BackgroundColor = theme.CellEmptyColor,
                     Margin = new Thickness(1),
-                    CornerRadius = 4
+                    CornerRadius = 0
                 };
 
                 _cellViews[r, c] = cell;
@@ -303,6 +270,7 @@ public partial class GamePage : ContentPage
             for (int c = 0; c < Board.Cols; c++)
             {
                 var cell = _game.Board.Grid[r, c];
+
                 _cellViews[r, c].BackgroundColor =
                     cell.IsOccupied ? cell.CellColor : theme.CellEmptyColor;
             }
@@ -310,27 +278,35 @@ public partial class GamePage : ContentPage
     }
 
     // ══════════════════════════════════════════════════════════
-    // Следующие блоки
+    // BLOCKS
     // ══════════════════════════════════════════════════════════
 
     private void DrawNextBlocks()
     {
-        DrawMiniBlock(Block0Grid, 0);
-        DrawMiniBlock(Block1Grid, 1);
-        DrawMiniBlock(Block2Grid, 2);
+        for (int i = 0; i < 3; i++)
+            DrawMiniBlock(i);
     }
 
-    private void DrawMiniBlock(Grid grid, int index)
+    private void DrawMiniBlock(int index)
     {
-        grid.Children.Clear();
-        grid.RowDefinitions.Clear();
-        grid.ColumnDefinitions.Clear();
+        var container = BlockContainers[index];
+        container.Content = null;
+        container.GestureRecognizers.Clear();
 
         if (index >= _game.NextBlocks.Count)
             return;
 
         var block = _game.NextBlocks[index];
 
+        var grid = new Grid
+        {
+            RowSpacing = 0,
+            ColumnSpacing = 0,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            InputTransparent = true
+        };
+
         for (int r = 0; r < block.Rows; r++)
             grid.RowDefinitions.Add(new RowDefinition { Height = MiniCellSize });
 
@@ -339,193 +315,247 @@ public partial class GamePage : ContentPage
 
         foreach (var (dr, dc) in block.GetCells())
         {
-            grid.Add(new BoxView
+            grid.Add(new Border
             {
                 BackgroundColor = block.BlockColor,
-                Margin = new Thickness(1),
-                CornerRadius = 3
+                StrokeThickness = 0,
+                Padding = 0,
+                Margin = 1
             }, dc, dr);
         }
 
-        SetupDragOnFrame(index);
+        container.Content = grid;
+
+        SetupDrag(index);
     }
 
     // ══════════════════════════════════════════════════════════
-    // Drag & Drop (PanGestureRecognizer)
+    // DRAG — ghost-подход как в CraftPage
     // ══════════════════════════════════════════════════════════
 
-    private void SetupDragOnFrame(int blockIndex)
+    private void SetupDrag(int idx)
     {
-        Frame frame = blockIndex switch
-        {
-            0 => Block0Frame,
-            1 => Block1Frame,
-            _ => Block2Frame
-        };
-
-        frame.GestureRecognizers.Clear();
+        var container = BlockContainers[idx];
 
         var pan = new PanGestureRecognizer();
 
-        pan.PanUpdated += (s, e) =>
+        pan.PanUpdated += async (s, e) =>
         {
             switch (e.StatusType)
             {
                 case GestureStatus.Started:
-                    _draggedBlockIndex = blockIndex;
-                    _dragProxy = CreateDragProxy(blockIndex);
+                    {
+                        if (_isDragging) break;
 
-                    // frame.X — позиция фрейма внутри HorizontalStackLayout
-                    // Добавляем: padding left (20) + padding top (50) + scoreGrid + spacing (25)
-                    _dragStartX = frame.X + 20;
-                    _dragStartY = frame.Y + 50 + _scoreGridHeight + 25;
+                        _isDragging = true;
+                        _draggingIndex = idx;
 
-                    AbsoluteLayout.SetLayoutFlags(_dragProxy, AbsoluteLayoutFlags.None);
-                    AbsoluteLayout.SetLayoutBounds(_dragProxy,
-                        new Rect(_dragStartX, _dragStartY, frame.Width, frame.Height));
+                        _ = container.FadeTo(0.25, 100);
 
-                    _overlay.Children.Clear();
-                    _overlay.Children.Add(_dragProxy);
-                    _overlay.IsVisible = true;
+                        _ghostStartPos = GetAbsolutePosition(container);
 
-                    frame.Opacity = 0.3;
-                    break;
+                        _ghostView = BuildGhostView(idx);
+
+                        AbsoluteLayout.SetLayoutBounds(
+                            _ghostView,
+                            new Rect(_ghostStartPos.X, _ghostStartPos.Y, BlockAreaSize, BlockAreaSize));
+                        AbsoluteLayout.SetLayoutFlags(_ghostView, AbsoluteLayoutFlags.None);
+
+                        _rootAbsolute.Add(_ghostView);
+                        break;
+                    }
 
                 case GestureStatus.Running:
-                    AbsoluteLayout.SetLayoutBounds(_dragProxy,
-                        new Rect(
-                            _dragStartX + e.TotalX,
-                            _dragStartY + e.TotalY,
-                            frame.Width,
-                            frame.Height));
-                    break;
+                    {
+                        if (_ghostView == null || !_isDragging) break;
+
+                        _ghostView.TranslationX = e.TotalX;
+                        _ghostView.TranslationY = e.TotalY;
+                        break;
+                    }
 
                 case GestureStatus.Completed:
-                    frame.Opacity = 1.0;
-                    _overlay.IsVisible = false;
-                    _overlay.Children.Clear();
-
-                    var proxyBounds = AbsoluteLayout.GetLayoutBounds(_dragProxy);
-                    double centerX = proxyBounds.X + proxyBounds.Width / 2;
-                    double centerY = proxyBounds.Y + proxyBounds.Height / 2;
-
-                    var (row, col) = GetCellFromPoint(centerX, centerY);
-
-                    if (row >= 0 && col >= 0)
-                        OnDrop(row, col);
-                    else
-                    {
-                        _draggedBlockIndex = -1;
-                        ShakeAnimation(frame);
-                    }
-                    break;
-
                 case GestureStatus.Canceled:
-                    frame.Opacity = 1.0;
-                    _overlay.IsVisible = false;
-                    _overlay.Children.Clear();
-                    _draggedBlockIndex = -1;
-                    break;
+                    {
+                        if (!_isDragging) break;
+
+                        _isDragging = false;
+
+                        _ = container.FadeTo(1.0, 100);
+
+                        bool placed = false;
+
+                        if (e.StatusType == GestureStatus.Completed && _ghostView != null)
+                        {
+                            var block = _game.NextBlocks[idx];
+                            var boardPos = GetAbsolutePosition(GameGrid);
+
+                            // Верхний левый угол ghost в абсолютных координатах
+                            double ghostLeft = _ghostStartPos.X + _ghostView.TranslationX;
+                            double ghostTop = _ghostStartPos.Y + _ghostView.TranslationY;
+
+                            // Размер мини-блока в пикселях
+                            double blockPixelW = block.Cols * (MiniCellSize + 2);
+                            double blockPixelH = block.Rows * (MiniCellSize + 2);
+
+                            // Центр самого блока внутри контейнера 100×100
+                            double offsetX = (BlockAreaSize - blockPixelW) / 2.0;
+                            double offsetY = (BlockAreaSize - blockPixelH) / 2.0;
+
+                            // Абсолютная позиция верхнего левого угла блока (не контейнера)
+                            double blockLeft = ghostLeft + offsetX;
+                            double blockTop = ghostTop + offsetY;
+
+                            // Центр блока
+                            double blockCenterX = blockLeft + blockPixelW / 2.0;
+                            double blockCenterY = blockTop + blockPixelH / 2.0;
+
+                            // Смещение центра блока относительно доски
+                            double relX = blockCenterX - boardPos.X;
+                            double relY = blockCenterY - boardPos.Y;
+
+                            // Целевая клетка — верхний левый угол размещения блока
+                            int col = (int)(relX / CellSize) - block.Cols / 2;
+                            int row = (int)(relY / CellSize) - block.Rows / 2;
+
+                            // Логируем для отладки
+                            System.Diagnostics.Debug.WriteLine(
+                                $"[Drag] ghostLeft={ghostLeft:F0} ghostTop={ghostTop:F0} " +
+                                $"boardPos=({boardPos.X:F0},{boardPos.Y:F0}) " +
+                                $"blockCenter=({blockCenterX:F0},{blockCenterY:F0}) " +
+                                $"rel=({relX:F0},{relY:F0}) row={row} col={col}");
+
+                            if (row >= 0 && row < Board.Rows &&
+                                col >= 0 && col < Board.Cols)
+                            {
+                                placed = _game.TryPlaceBlock(idx, row, col);
+                            }
+
+                            // Если не попал точно — пробуем соседние клетки (±1)
+                            if (!placed)
+                            {
+                                for (int dr = -1; dr <= 1 && !placed; dr++)
+                                    for (int dc = -1; dc <= 1 && !placed; dc++)
+                                    {
+                                        int r2 = row + dr;
+                                        int c2 = col + dc;
+                                        if (r2 >= 0 && r2 < Board.Rows &&
+                                            c2 >= 0 && c2 < Board.Cols)
+                                        {
+                                            placed = _game.TryPlaceBlock(idx, r2, c2);
+                                        }
+                                    }
+                            }
+                        }
+
+                        if (_ghostView != null)
+                        {
+                            var ghost = _ghostView;
+                            _ghostView = null;
+
+                            if (!placed)
+                            {
+                                await Task.WhenAll(
+                                    ghost.TranslateTo(0, 0, 180, Easing.SpringOut),
+                                    ghost.FadeTo(0, 180));
+                            }
+                            else
+                            {
+                                await ghost.FadeTo(0, 100);
+                            }
+
+                            _rootAbsolute.Remove(ghost);
+                        }
+
+                        _draggingIndex = -1;
+                        break;
+                    }
             }
         };
 
-        frame.GestureRecognizers.Add(pan);
+        container.GestureRecognizers.Add(pan);
     }
 
-    // Создаёт визуальную копию блока для перетаскивания
-    private View CreateDragProxy(int blockIndex)
+    /// <summary>
+    /// Строит ghost Border с мини-сеткой блока внутри.
+    /// </summary>
+    private Border BuildGhostView(int idx)
     {
-        if (blockIndex >= _game.NextBlocks.Count)
-            return new BoxView();
+        var block = _game.NextBlocks[idx];
 
-        var block = _game.NextBlocks[blockIndex];
-
-        var grid = new Grid { RowSpacing = 0, ColumnSpacing = 0 };
+        var grid = new Grid
+        {
+            RowSpacing = 0,
+            ColumnSpacing = 0,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            InputTransparent = true,
+            ScaleX = 1.15,
+            ScaleY = 1.15
+        };
 
         for (int r = 0; r < block.Rows; r++)
             grid.RowDefinitions.Add(new RowDefinition { Height = MiniCellSize });
+
         for (int c = 0; c < block.Cols; c++)
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = MiniCellSize });
 
         foreach (var (dr, dc) in block.GetCells())
         {
-            grid.Add(new BoxView
+            grid.Add(new Border
             {
                 BackgroundColor = block.BlockColor,
-                Margin = new Thickness(1),
-                CornerRadius = 3
+                StrokeThickness = 0,
+                Padding = 0,
+                Margin = 1,
+                Opacity = 0.85
             }, dc, dr);
         }
 
-        return new Frame
+        return new Border
         {
-            Padding = 8,
-            CornerRadius = 12,
-            BackgroundColor = Colors.DimGray,
-            BorderColor = Colors.White,
-            Opacity = 0.85,
-            Content = grid,
-            WidthRequest = 90,
-            HeightRequest = 90
+            WidthRequest = BlockAreaSize,
+            HeightRequest = BlockAreaSize,
+            BackgroundColor = Colors.Transparent,
+            StrokeThickness = 0,
+            Padding = 0,
+            InputTransparent = true,
+            Content = grid
         };
     }
 
-    // Определяет строку и столбец доски по координатам на экране
-    private (int row, int col) GetCellFromPoint(double x, double y)
+    // ══════════════════════════════════════════════════════════
+    // HELPERS
+    // ══════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Обходим дерево родителей до _rootAbsolute,
+    /// суммируя Bounds.X/Y — так же, как в CraftPage.
+    /// </summary>
+    private Point GetAbsolutePosition(View view)
     {
-        // GameGrid.X/Y — позиция внутри VerticalStackLayout
-        // Добавляем padding страницы: left=20, top=50
-        double gridX = GameGrid.X + 20;
-        double gridY = GameGrid.Y + 50;
+        double x = 0, y = 0;
+        Element current = view;
 
-        double relX = x - gridX;
-        double relY = y - gridY;
-
-        int col = (int)(relX / CellSize);
-        int row = (int)(relY / CellSize);
-
-        if (row < 0 || row >= Board.Rows || col < 0 || col >= Board.Cols)
-            return (-1, -1);
-
-        return (row, col);
-    }
-
-    private void OnDrop(int row, int col)
-    {
-        if (_draggedBlockIndex < 0)
-            return;
-
-        bool placed = _game.TryPlaceBlock(_draggedBlockIndex, row, col);
-
-        if (!placed)
+        while (current != null && current != _rootAbsolute)
         {
-            Frame frame = _draggedBlockIndex switch
+            if (current is VisualElement ve)
             {
-                0 => Block0Frame,
-                1 => Block1Frame,
-                _ => Block2Frame
-            };
-            ShakeAnimation(frame);
+                x += ve.Bounds.X;
+                y += ve.Bounds.Y;
+            }
+
+            current = current.Parent;
         }
 
-        _draggedBlockIndex = -1;
+        return new Point(x, y);
     }
 
     // ══════════════════════════════════════════════════════════
-    // Анимации
+    // EFFECTS
     // ══════════════════════════════════════════════════════════
 
-    private async void ShakeAnimation(View view)
-    {
-        for (int i = 0; i < 3; i++)
-        {
-            await view.TranslateTo(-8, 0, 50);
-            await view.TranslateTo(8, 0, 50);
-        }
-        await view.TranslateTo(0, 0, 50);
-    }
-
-    private async void FlashAnimation()
+    private async Task Flash()
     {
         for (int i = 0; i < 2; i++)
         {
@@ -535,7 +565,7 @@ public partial class GamePage : ContentPage
     }
 
     // ══════════════════════════════════════════════════════════
-    // События игры
+    // EVENTS
     // ══════════════════════════════════════════════════════════
 
     private void OnScoreChanged(int score)
@@ -558,9 +588,9 @@ public partial class GamePage : ContentPage
 
     private void OnLinesCleared(int count)
     {
-        MainThread.BeginInvokeOnMainThread(() =>
+        MainThread.BeginInvokeOnMainThread(async () =>
         {
-            FlashAnimation();
+            await Flash();
         });
     }
 
@@ -570,14 +600,13 @@ public partial class GamePage : ContentPage
         {
             _scoreService.Save(_game.Player);
 
-            string title = AppResources.gameover;
-            string message = $"{AppResources.yoursroce}: {_game.Player.Score:N0}";
-            string again = AppResources.playagain;
-            string menu = AppResources.menu;
+            bool again = await DisplayAlert(
+                AppResources.gameover,
+                $"{AppResources.score}: {_game.Player.Score:N0}",
+                AppResources.playagain,
+                AppResources.menu);
 
-            bool playAgain = await DisplayAlert(title, message, again, menu);
-
-            if (playAgain)
+            if (again)
             {
                 _game.Start();
                 DrawBoard();
