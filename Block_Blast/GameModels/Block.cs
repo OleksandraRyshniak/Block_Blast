@@ -48,6 +48,15 @@ namespace Block_Blast.GameModels
             { 1 }
         }, color);
 
+        public static Block LineV5(Color color) => new Block(new int[,]
+{
+            { 1 },
+            { 1 },
+            { 1 },
+            { 1 },
+            { 1 }
+}, color);
+
         public static Block LShape(Color color) => new Block(new int[,]
         {
             { 1, 0 },

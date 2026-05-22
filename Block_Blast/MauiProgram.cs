@@ -17,6 +17,7 @@ namespace Block_Blast
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
 
+            builder.Services.AddSingleton<AccountService>();
             builder.Services.AddSingleton<ThemeService>();
             builder.Services.AddSingleton<ScoreService>();
             
