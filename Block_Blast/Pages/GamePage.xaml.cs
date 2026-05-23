@@ -777,14 +777,64 @@ public partial class GamePage : ContentPage
         });
     }
 
-    private void OnLinesCleared(int count, List<(bool isRow, int index)> lines, int combo)
+    private void OnLinesCleared(int count, List<(bool isRow, int index)> lines, int combo, bool isBoardClear)
     {
         MainThread.BeginInvokeOnMainThread(async () =>
         {
-            await Task.WhenAll(
+            var tasks = new List<Task>
+            {
                 AnimateClearLines(lines),
-                ShowComboLabel(combo));
+                ShowComboLabel(combo)
+            };
+
+            if (isBoardClear)
+                tasks.Add(ShowBoardClearLabel());
+
+            await Task.WhenAll(tasks);
         });
+    }
+
+    /// <summary>
+    /// Всплывающее "BOARD CLEAR! +360" золотое сообщение.
+    /// </summary>
+    private async Task ShowBoardClearLabel()
+    {
+        var label = new Label
+        {
+            Text = "✨ BOARD CLEAR! +360",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.Gold,
+            HorizontalOptions = LayoutOptions.Center,
+            Opacity = 0,
+            Shadow = new Shadow
+            {
+                Brush = new SolidColorBrush(Colors.OrangeRed),
+                Offset = new Point(2, 2),
+                Radius = 6,
+                Opacity = 0.9f
+            }
+        };
+
+        var boardPos = GetAbsolutePosition(GameGrid);
+        double cx = boardPos.X + (Board.Cols * CellSize) / 2.0 - 110;
+        double cy = boardPos.Y + 30;
+
+        AbsoluteLayout.SetLayoutBounds(label, new Rect(cx, cy, 240, 50));
+        AbsoluteLayout.SetLayoutFlags(label, AbsoluteLayoutFlags.None);
+        _rootAbsolute.Add(label);
+
+        await Task.WhenAll(
+            label.FadeTo(1, 200),
+            label.ScaleTo(1.15, 200, Easing.CubicOut));
+
+        await Task.Delay(700);
+
+        await Task.WhenAll(
+            label.FadeTo(0, 350),
+            label.TranslateTo(0, -40, 350, Easing.CubicIn));
+
+        _rootAbsolute.Remove(label);
     }
 
     private void OnGameOver()
@@ -793,9 +843,15 @@ public partial class GamePage : ContentPage
         {
             _scoreService.Save(_game.Player);
 
+            // Детальная статистика в сообщении
+            string stats =
+                $"{AppResources.score}: {_game.Player.Score:N0}\n" +
+                $"Lines: {_game.Player.TotalLinesCleared}\n" +
+                $"Best combo: ×{1.0 + (_game.Player.MaxCombo - 1) * 0.5:0.0}";
+
             bool again = await DisplayAlert(
                 AppResources.gameover,
-                $"{AppResources.score}: {_game.Player.Score:N0}",
+                stats,
                 AppResources.playagain,
                 AppResources.menu);
 

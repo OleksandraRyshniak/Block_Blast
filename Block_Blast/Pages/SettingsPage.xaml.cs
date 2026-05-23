@@ -308,18 +308,18 @@ public partial class SettingsPage : ContentPage
     {
         bool confirm = await DisplayAlert(
             "ACCOUNT",
-            "Exit account and create new?",
-            "Yes",
-            "No");
+            "Exit account and switch player?",
+            "Yes", "No");
 
         if (!confirm) return;
 
         await AnimateButtonPress(BtnLogout);
         _accountService.Logout();
 
-        // Возвращаемся на StartPage и сразу показываем диалог имени
+        // Возвращаемся на StartPage, затем открываем LoginPage
+        // canCancel=true — можно вернуться (аккаунт уже был)
         await Navigation.PopAsync();
-        await _startPage.ShowLoginDialog(canCancel: false);
+        await _startPage.GoToLogin(canCancel: true);
     }
 
     private async void OnBackClicked(object sender, EventArgs e)

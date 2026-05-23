@@ -12,10 +12,12 @@ public class Board
     public Cell[,] Grid { get; private set; }
 
     /// <summary>
-    /// Событие: передаёт количество очищенных линий И их индексы.
-    /// Item1 = count, Item2 = список (isRow, index).
+    /// Событие после очистки линий.
+    /// int  = кол-во линий
+    /// List = список (isRow, index) — какие именно линии
+    /// bool = isBoardClear — поле полностью пустое?
     /// </summary>
-    public event Action<int, List<(bool isRow, int index)>>? LinesCleared;
+    public event Action<int, List<(bool isRow, int index)>, bool>? LinesCleared;
 
     // ── Конструктор ───────────────────────────────────────────
     public Board()
@@ -57,15 +59,25 @@ public class Board
 
         var (count, lines) = ClearFullLines();
         if (count > 0)
-            LinesCleared?.Invoke(count, lines);
+        {
+            bool boardClear = IsBoardEmpty();
+            LinesCleared?.Invoke(count, lines, boardClear);
+        }
     }
 
-    // ── Сложный режим: случайное заполнение ───────────────────
+    // ── Board clear ───────────────────────────────────────────
 
-    /// <summary>
-    /// Заполняет ~count случайных клеток серым цветом.
-    /// Гарантирует что поле не окажется сразу заблокированным.
-    /// </summary>
+    /// <summary>True если на поле нет ни одной занятой клетки.</summary>
+    public bool IsBoardEmpty()
+    {
+        for (int r = 0; r < Rows; r++)
+            for (int c = 0; c < Cols; c++)
+                if (Grid[r, c].IsOccupied) return false;
+        return true;
+    }
+
+    // ── Сложный режим ─────────────────────────────────────────
+
     public void FillRandom(int count = 12)
     {
         var rng = new Random();
@@ -75,31 +87,24 @@ public class Board
             for (int c = 0; c < Cols; c++)
                 positions.Add((r, c));
 
-        // Перемешиваем Fisher-Yates
         for (int i = positions.Count - 1; i > 0; i--)
         {
             int j = rng.Next(i + 1);
             (positions[i], positions[j]) = (positions[j], positions[i]);
         }
 
-        var hardColor = Color.FromArgb("#607D8B"); // серо-синий
-
+        var hardColor = Color.FromArgb("#607D8B");
         int placed = 0;
         foreach (var (r, c) in positions)
         {
             if (placed >= count) break;
-            // Не занимаем клетки в одном полностью — иначе сразу очистится
             Grid[r, c].Fill(hardColor);
             placed++;
         }
     }
 
-    // ── Превью размещения ─────────────────────────────────────
+    // ── Превью ────────────────────────────────────────────────
 
-    /// <summary>
-    /// Возвращает список клеток (row, col) где блок окажется при размещении.
-    /// Возвращает пустой список если размещение невозможно.
-    /// </summary>
     public List<(int row, int col)> GetPreviewCells(Block block, int startRow, int startCol)
     {
         var cells = new List<(int, int)>();
@@ -114,27 +119,22 @@ public class Board
         return cells;
     }
 
-    // ── Проверка конца игры ───────────────────────────────────
+    public bool CanPlaceAnywhere(Block block)
+    {
+        for (int r = 0; r < Rows; r++)
+            for (int c = 0; c < Cols; c++)
+                if (CanPlace(block, r, c)) return true;
+        return false;
+    }
+
+    // ── Конец игры ────────────────────────────────────────────
 
     public bool IsGameOver(List<Block> nextBlocks)
     {
         foreach (var block in nextBlocks)
-            if (HasAnyValidPosition(block))
-                return false;
+            if (CanPlaceAnywhere(block)) return false;
         return true;
     }
-
-    private bool HasAnyValidPosition(Block block)
-    {
-        for (int r = 0; r < Rows; r++)
-            for (int c = 0; c < Cols; c++)
-                if (CanPlace(block, r, c))
-                    return true;
-        return false;
-    }
-
-    /// <summary>Проверяет можно ли вообще поставить блок хоть куда-то.</summary>
-    public bool CanPlaceAnywhere(Block block) => HasAnyValidPosition(block);
 
     // ── Очистка линий ─────────────────────────────────────────
 
@@ -144,24 +144,11 @@ public class Board
         var lines = new List<(bool isRow, int index)>();
 
         for (int r = 0; r < Rows; r++)
-        {
-            if (IsRowFull(r))
-            {
-                lines.Add((true, r));
-                count++;
-            }
-        }
+            if (IsRowFull(r)) { lines.Add((true, r)); count++; }
 
         for (int c = 0; c < Cols; c++)
-        {
-            if (IsColFull(c))
-            {
-                lines.Add((false, c));
-                count++;
-            }
-        }
+            if (IsColFull(c)) { lines.Add((false, c)); count++; }
 
-        // Сначала собираем все линии, потом очищаем (избегаем двойной очистки)
         foreach (var (isRow, idx) in lines)
         {
             if (isRow) ClearRow(idx);
@@ -195,6 +182,5 @@ public class Board
         for (int r = 0; r < Rows; r++) Grid[r, col].Clear();
     }
 
-    // ── Сброс ─────────────────────────────────────────────────
     public void Reset() => InitGrid();
 }

@@ -152,47 +152,24 @@ public partial class StartPage : ContentPage
         LanguageService.LanguageChanged -= ApplyLocalization;
     }
 
+
+
     // ── Аккаунт ───────────────────────────────────────────────
 
     /// <summary>
-    /// Показывает диалог ввода имени.
-    /// canCancel = false при первом запуске (нельзя закрыть без имени).
+    /// Открывает LoginPage и ждёт результата.
+    /// canCancel=false — нельзя закрыть без имени (первый запуск).
     /// </summary>
-    public async Task ShowLoginDialog(bool canCancel = true)
+    public async Task<string?> GoToLogin(bool canCancel = false)
     {
-        while (true)
-        {
-            string prompt = canCancel
-                ? AppResources.enter_your_name
-                : AppResources.enter_your_name; // можно сделать отдельный ключ
+        var loginPage = new LoginPage(
+            _accountService, _scoreService, _themeService, canCancel);
 
-            string result = await DisplayPromptAsync(
-                title: "Block Blast",
-                message: AppResources.player,
-                accept: "OK",
-                cancel: canCancel ? AppResources.back : null,
-                placeholder: AppResources.enter_your_name,
-                maxLength: 16,
-                keyboard: Keyboard.Text);
+        await Navigation.PushAsync(loginPage);
+        var result = await loginPage.WaitForResult();
 
-            // Отменил (только если разрешено)
-            if (result == null && canCancel) return;
-
-            string cleaned = CleanName(result ?? "");
-
-            if (string.IsNullOrEmpty(cleaned))
-            {
-                await DisplayAlert(
-                    AppResources.no_name,
-                    AppResources.name_start,
-                    "OK");
-                continue;
-            }
-
-            _accountService.SetCurrentName(cleaned);
-            RefreshPlayerInfo();
-            return;
-        }
+        RefreshPlayerInfo();
+        return result;
     }
 
     private void RefreshPlayerInfo()
@@ -291,10 +268,11 @@ public partial class StartPage : ContentPage
         var btn = mode == GameMode.Easy ? BtnPlayEasy : BtnPlayHard;
         await AnimateButtonPress(btn);
 
+        // Если аккаунта нет — открываем LoginPage
         var name = _accountService.GetCurrentName();
         if (name == null)
         {
-            await ShowLoginDialog(canCancel: false);
+            await GoToLogin(canCancel: false);
             name = _accountService.GetCurrentName();
             if (name == null) return;
         }
