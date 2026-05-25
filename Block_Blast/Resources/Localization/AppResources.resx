@@ -148,10 +148,10 @@
     <value>Tulemusi pole</value>
   </data>
   <data name="enter_your_name" xml:space="preserve">
-    <value>Sisesta oma nimi</value>
+    <value>SISESTA OMA NIMI</value>
   </data>
   <data name="play" xml:space="preserve">
-    <value>▶ MÄNGI</value>
+    <value>MÄNGI</value>
   </data>
   <data name="no_name" xml:space="preserve">
     <value>NIME PUUDUMINE</value>
@@ -161,9 +161,6 @@
   </data>
   <data name="error" xml:space="preserve">
     <value>VIGA</value>
-  </data>
-  <data name="best" xml:space="preserve">
-    <value>PARIM</value>
   </data>
   <data name="gameover" xml:space="preserve">
     <value>Mäng Läbi</value>
@@ -176,5 +173,53 @@
   </data>
   <data name="menu" xml:space="preserve">
     <value>Menüü</value>
+  </data>
+  <data name="easy" xml:space="preserve">
+    <value>-</value>
+  </data>
+  <data name="hard" xml:space="preserve">
+    <value>-</value>
+  </data>
+  <data name="account" xml:space="preserve">
+    <value>-</value>
+  </data>
+  <data name="logout" xml:space="preserve">
+    <value>-</value>
+  </data>
+  <data name="exit" xml:space="preserve">
+    <value>-</value>
+  </data>
+  <data name="light" xml:space="preserve">
+    <value>-</value>
+  </data>
+  <data name="dark" xml:space="preserve">
+    <value>-</value>
+  </data>
+  <data name="colorful" xml:space="preserve">
+    <value>--</value>
+  </data>
+  <data name="start" xml:space="preserve">
+    <value>-</value>
+  </data>
+  <data name="eaasp" xml:space="preserve">
+    <value>--</value>
+  </data>
+  <data name="combo1" xml:space="preserve">
+    <value>---</value>
+  </data>
+  <data name="best_combo" xml:space="preserve">
+    <value>---</value>
+  </data>
+  <data name="lines" xml:space="preserve">
+    <value>--</value>
+  </data>
+  <data name="board_clear" xml:space="preserve">
+    <value>----</value>
+  </data>
+  <data name="yes" xml:space="preserve">
+    <value>jah</value>
+  </data>
+  <data name="no" xml:space="preserve">
+    <value>ei</value>
   </data>
 </root>

@@ -118,108 +118,102 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="player" xml:space="preserve">
-    <value>Player</value>
+    <value>-</value>
   </data>
   <data name="scores" xml:space="preserve">
-    <value>Scores</value>
+    <value>-</value>
   </data>
   <data name="score" xml:space="preserve">
-    <value>SCORE</value>
+    <value>-</value>
   </data>
   <data name="settings" xml:space="preserve">
-    <value>SETTINGS</value>
+    <value>-</value>
   </data>
   <data name="theme" xml:space="preserve">
-    <value>THEME</value>
+    <value>-</value>
   </data>
   <data name="language" xml:space="preserve">
-    <value>LANGUAGE</value>
+    <value>-</value>
   </data>
   <data name="back" xml:space="preserve">
-    <value>◀ BACK</value>
+    <value>-</value>
   </data>
   <data name="name" xml:space="preserve">
-    <value>Name</value>
+    <value>-</value>
   </data>
   <data name="rank" xml:space="preserve">
-    <value>RANK</value>
+    <value>-</value>
   </data>
   <data name="no_scores_yet" xml:space="preserve">
-    <value>No scores yet</value>
+    <value>-</value>
   </data>
   <data name="enter_your_name" xml:space="preserve">
-    <value>ENTER YOUR NAME</value>
+    <value>-</value>
   </data>
   <data name="play" xml:space="preserve">
-    <value>PLAY </value>
+    <value>-</value>
   </data>
   <data name="no_name" xml:space="preserve">
-    <value>NO NAME</value>
+    <value>-</value>
   </data>
   <data name="name_start" xml:space="preserve">
-    <value>Enter your player name to start.</value>
+    <value>-</value>
   </data>
   <data name="error" xml:space="preserve">
-    <value>ERROR</value>
+    <value>-</value>
   </data>
   <data name="gameover" xml:space="preserve">
-    <value>Game Over</value>
+    <value>-</value>
   </data>
   <data name="yoursroce" xml:space="preserve">
-    <value>Your score</value>
+    <value>-</value>
   </data>
   <data name="playagain" xml:space="preserve">
-    <value>Play Again</value>
+    <value>-</value>
   </data>
   <data name="menu" xml:space="preserve">
-    <value>MENU</value>
+    <value>-</value>
   </data>
   <data name="easy" xml:space="preserve">
-    <value>"EASY"</value>
+    <value>-</value>
   </data>
   <data name="hard" xml:space="preserve">
-    <value>"HARD"</value>
+    <value>-</value>
   </data>
   <data name="account" xml:space="preserve">
-    <value>ACCOUNT</value>
+    <value>-</value>
   </data>
   <data name="logout" xml:space="preserve">
-    <value>LOGOUT</value>
+    <value>-</value>
   </data>
   <data name="exit" xml:space="preserve">
-    <value>EXIT</value>
+    <value>-</value>
   </data>
   <data name="light" xml:space="preserve">
-    <value>Light</value>
+    <value>-</value>
   </data>
   <data name="dark" xml:space="preserve">
-    <value>Dark</value>
+    <value>-</value>
   </data>
   <data name="colorful" xml:space="preserve">
-    <value>Colorful</value>
+    <value>-</value>
   </data>
   <data name="start" xml:space="preserve">
-    <value>START</value>
+    <value>-</value>
   </data>
   <data name="eaasp" xml:space="preserve">
-    <value>Exit account and switch player?</value>
+    <value>-</value>
   </data>
   <data name="combo1" xml:space="preserve">
-    <value>COMBO</value>
+    <value>--</value>
   </data>
   <data name="best_combo" xml:space="preserve">
-    <value>Best combo</value>
+    <value>---</value>
   </data>
   <data name="lines" xml:space="preserve">
-    <value>Lines</value>
+    <value>--</value>
   </data>
   <data name="board_clear" xml:space="preserve">
-    <value>Board Clear !</value>
-  </data>
-  <data name="yes" xml:space="preserve">
-    <value>yes</value>
-  </data>
-  <data name="no" xml:space="preserve">
-    <value>no</value>
+    <value>-</value>
   </data>
 </root>

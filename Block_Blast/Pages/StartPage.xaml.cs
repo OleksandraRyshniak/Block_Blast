@@ -13,16 +13,16 @@ public partial class StartPage : ContentPage
 
     // ── UI ────────────────────────────────────────────────────
     private Label LblTitle;
-    private Label LblWelcome;       // "Привет, Имя!"
-    private Label LblBest;          // "Рекорд: 1230"
+    private Label LblBest;       // "🏆 Best: 1 230"
 
     private Button BtnPlayEasy;
     private Button BtnPlayHard;
-    private Button BtnScores;
+
     private Button BtnSettings;
 
     // ── Состояние ─────────────────────────────────────────────
     private bool _isNavigating = false;
+    private bool _loginChecked = false;
 
     // ── Конструктор ───────────────────────────────────────────
     public StartPage(
@@ -41,94 +41,140 @@ public partial class StartPage : ContentPage
     // ── Построение UI ─────────────────────────────────────────
     private void BuildUI()
     {
-        BackgroundColor = Colors.Black;
+        BackgroundColor = Color.FromArgb("#0D0D1A");
+        Shell.SetNavBarIsVisible(this, false);
+
+        // Декор — те же 4 угла
+        var decoTL = MakeDecoBox("#39FF14", 0.10, 100, 100, LayoutOptions.Start, LayoutOptions.Start, Thickness.Zero);
+        var decoBR = MakeDecoBox("#FF3CAC", 0.12, 110, 110, LayoutOptions.End, LayoutOptions.End, Thickness.Zero);
+        var decoTR = MakeDecoBox("#FFE500", 0.09, 75, 75, LayoutOptions.End, LayoutOptions.Start, Thickness.Zero);
+        var decoBL = MakeDecoBox("#00F5FF", 0.09, 65, 65, LayoutOptions.Start, LayoutOptions.End, Thickness.Zero);
 
         LblTitle = new Label
         {
-            Text = "BLOCK BLAST",
-            FontSize = 34,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
-            HorizontalOptions = LayoutOptions.Center
+            Text = "BLOCK\nBLAST",
+            FontFamily = "PressStart2P",
+            FontSize = 30,
+            TextColor = Color.FromArgb("#00F5FF"),
+            HorizontalOptions = LayoutOptions.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
+            LineHeight = 1.4,
+            Shadow = new Shadow
+            {
+                Brush = new SolidColorBrush(Color.FromArgb("#00F5FF")),
+                Offset = new Point(4, 4),
+                Radius = 0,
+                Opacity = 0.65f
+            }
         };
 
-        LblWelcome = new Label
+        var titleLine = new BoxView
         {
-            FontSize = 20,
-            TextColor = Colors.LightGray,
-            HorizontalOptions = LayoutOptions.Center
+            Color = Color.FromArgb("#00F5FF"),
+            HeightRequest = 2,
+            Opacity = 0.35,
+            Margin = new Thickness(0, 0, 0, 8)
         };
 
         LblBest = new Label
         {
-            FontSize = 16,
-            TextColor = Colors.Gold,
-            HorizontalOptions = LayoutOptions.Center
+            FontFamily = "PressStart2P",
+            FontSize = 9,
+            TextColor = Color.FromArgb("#FFE500"),
+            HorizontalOptions = LayoutOptions.Center,
+            CharacterSpacing = 2,
+            Shadow = new Shadow
+            {
+                Brush = new SolidColorBrush(Color.FromArgb("#FFE500")),
+                Offset = new Point(2, 2),
+                Radius = 0,
+                Opacity = 0.5f
+            }
         };
 
-        // ── Две кнопки режима ─────────────────────────────────
         BtnPlayEasy = new Button
         {
-            FontSize = 20,
-            CornerRadius = 18,
-            BackgroundColor = Colors.LimeGreen,
-            TextColor = Colors.White,
-            HeightRequest = 60
+            FontFamily = "PressStart2P",
+            FontSize = 12,
+            CornerRadius = 0,
+            HeightRequest = 56,
+            BackgroundColor = Color.FromArgb("#39FF14"),
+            TextColor = Color.FromArgb("#0D0D1A"),
+            BorderWidth = 0
         };
         BtnPlayEasy.Clicked += (s, e) => OnPlayClicked(GameMode.Easy);
 
         BtnPlayHard = new Button
         {
-            FontSize = 20,
-            CornerRadius = 18,
-            BackgroundColor = Color.FromArgb("#E53935"),
-            TextColor = Colors.White,
-            HeightRequest = 60
+            FontFamily = "PressStart2P",
+            FontSize = 12,
+            CornerRadius = 0,
+            HeightRequest = 56,
+            BackgroundColor = Color.FromArgb("#FF3CAC"),
+            TextColor = Color.FromArgb("#0D0D1A"),
+            BorderWidth = 0
         };
         BtnPlayHard.Clicked += (s, e) => OnPlayClicked(GameMode.Hard);
 
-        BtnScores = new Button
-        {
-            FontSize = 18,
-            CornerRadius = 14,
-            BackgroundColor = Colors.DodgerBlue,
-            TextColor = Colors.White,
-            HeightRequest = 55
-        };
-        BtnScores.Clicked += OnScoresClicked;
-
         BtnSettings = new Button
         {
-            FontSize = 18,
-            CornerRadius = 14,
-            BackgroundColor = Colors.DarkOrange,
-            TextColor = Colors.White,
-            HeightRequest = 55
+            FontFamily = "PressStart2P",
+            FontSize = 10,
+            CornerRadius = 0,
+            HeightRequest = 48,
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#FF3CAC"),
+            BorderColor = Color.FromArgb("#FF3CAC"),
+            BorderWidth = 2
         };
         BtnSettings.Clicked += OnSettingsClicked;
 
-        Content = new ScrollView
+        var mainCard = new Border
         {
+            BackgroundColor = Color.FromArgb("#1A1A2E"),
+            StrokeThickness = 2,
+            Stroke = new SolidColorBrush(Color.FromArgb("#39FF14")),
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.Rectangle(),
+            Padding = new Thickness(20, 24),
             Content = new VerticalStackLayout
             {
-                Padding = new Thickness(30, 80, 30, 40),
-                Spacing = 18,
-                VerticalOptions = LayoutOptions.Center,
-                Children =
-                {
-                    LblTitle,
-                    new BoxView { HeightRequest = 10, Opacity = 0 },
-                    LblWelcome,
-                    LblBest,
-                    new BoxView { HeightRequest = 10, Opacity = 0 },
-                    BtnPlayEasy,
-                    BtnPlayHard,
-                    BtnScores,
-                    BtnSettings
-                }
+                Spacing = 14,
+                Children = { BtnPlayEasy, BtnPlayHard }
             }
         };
+
+        Content = new Grid
+        {
+            Children =
+        {
+            decoTL, decoBR, decoTR, decoBL,
+            new ScrollView
+            {
+                Content = new VerticalStackLayout
+                {
+                    Padding = new Thickness(28, 72, 28, 40),
+                    Spacing = 20,
+                    VerticalOptions = LayoutOptions.Center,
+                    Children = { LblTitle, titleLine, LblBest, mainCard, BtnSettings }
+                }
+            }
+        }
+        };
     }
+
+    private static BoxView MakeDecoBox(string hex, double opacity,
+        double w, double h,
+        LayoutOptions hOpt, LayoutOptions vOpt, Thickness margin) => new BoxView
+        {
+            Color = Color.FromArgb(hex),
+            Opacity = opacity,
+            WidthRequest = w,
+            HeightRequest = h,
+            HorizontalOptions = hOpt,
+            VerticalOptions = vOpt,
+            Margin = margin
+        };
+
 
     // ── Жизненный цикл ────────────────────────────────────────
     protected override async void OnAppearing()
@@ -139,9 +185,16 @@ public partial class StartPage : ContentPage
         _isNavigating = false;
         ApplyTheme();
         ApplyLocalization();
+        RefreshBestScore();
 
-        // Имя показываем если аккаунт есть, иначе прячем (покажем при нажатии Play)
-        RefreshPlayerInfo();
+        // Проверяем логин только один раз
+        if (!_loginChecked)
+        {
+            _loginChecked = true;
+
+            if (_accountService.GetCurrentName() == null)
+                await GoToLogin(canCancel: false);
+        }
 
         await PlayEntranceAnimation();
     }
@@ -152,14 +205,21 @@ public partial class StartPage : ContentPage
         LanguageService.LanguageChanged -= ApplyLocalization;
     }
 
+    // ── Рекорд ────────────────────────────────────────────────
 
+    /// <summary>Обновляет метку лучшего результата.</summary>
+    private void RefreshBestScore()
+    {
+        var playerName = _accountService.GetCurrentName();
+        if (playerName == null) return;
 
-    // ── Аккаунт ───────────────────────────────────────────────
+        int best = _scoreService.GetBestScore(playerName);
+        LblBest.Text = best > 0
+            ? $"🏆: {best:N0}"
+            : $"🏆: —";
+    }
 
-    /// <summary>
-    /// Открывает LoginPage и ждёт результата.
-    /// canCancel=false — нельзя закрыть без имени (первый запуск).
-    /// </summary>
+    // ── LoginPage (только первый запуск или из Settings) ──────
     public async Task<string?> GoToLogin(bool canCancel = false)
     {
         var loginPage = new LoginPage(
@@ -168,38 +228,55 @@ public partial class StartPage : ContentPage
         await Navigation.PushAsync(loginPage);
         var result = await loginPage.WaitForResult();
 
-        RefreshPlayerInfo();
+        RefreshBestScore();
         return result;
     }
 
-    private void RefreshPlayerInfo()
+    // ── Тема и локализация ────────────────────────────────────
+    private void ApplyTheme()
     {
-        var name = _accountService.GetCurrentName();
+        var t = _themeService.Current;
 
-        if (name == null)
+        BackgroundColor = t.BackgroundColor;
+
+        LblTitle.TextColor = t.AccentColor;
+        LblBest.TextColor = t.Name == "Light"
+            ? Color.FromArgb("#B8860B")   // тёмное золото на светлом фоне
+            : Colors.Gold;
+
+        // Кнопка Easy — акцентный цвет
+        BtnPlayEasy.BackgroundColor = t.AccentColor;
+        BtnPlayEasy.TextColor = IsLightColor(t.AccentColor)
+            ? Color.FromArgb("#0A0A14") : Colors.White;
+
+        // Кнопка Hard — второй акцент (чуть темнее/теплее)
+        var hardColor = t.Name switch
         {
-            LblWelcome.Text = "👤 ...";
-            LblBest.Text = "";
-            return;
-        }
+            "Light" => Color.FromArgb("#E53935"),
+            "Dark" => Color.FromArgb("#FF6B6B"),
+            "Colorful" => Color.FromArgb("#FF3CAC"),
+            _ => Color.FromArgb("#E53935")
+        };
+        BtnPlayHard.BackgroundColor = hardColor;
+        BtnPlayHard.TextColor = IsLightColor(hardColor)
+            ? Color.FromArgb("#0A0A14") : Colors.White;
 
-        LblWelcome.Text = $"👤 {name}";
-
-        int best = _scoreService.GetBestScore(name);
-        LblBest.Text = best > 0
-            ? $"🏆 {AppResources.best}: {best:N0}"
-            : $"🏆 {AppResources.best}: —";
+        // Кнопка Settings — прозрачная с рамкой
+        BtnSettings.BackgroundColor = Colors.Transparent;
+        BtnSettings.TextColor = t.TextColor;
+        BtnSettings.BorderColor = t.CellBorderColor;
     }
 
-    // ── Тема и локализация ────────────────────────────────────
-    private void ApplyTheme() => _themeService.Current.Apply(this);
+    private static bool IsLightColor(Color c) =>
+        (c.Red * 0.299 + c.Green * 0.587 + c.Blue * 0.114) > 0.6f;
 
     private void ApplyLocalization()
     {
-        BtnPlayEasy.Text = "▶  " + AppResources.play + " (Easy)";
+        BtnPlayEasy.Text = AppResources.play + " (Easy)";
         BtnPlayHard.Text = "🔥  " + AppResources.play + " (Hard)";
-        BtnScores.Text = "🏆  " + AppResources.scores;
+        
         BtnSettings.Text = "⚙  " + AppResources.settings;
+        RefreshBestScore();
     }
 
     // ── Анимации ──────────────────────────────────────────────
@@ -207,13 +284,12 @@ public partial class StartPage : ContentPage
     {
         LblTitle.Opacity = 0;
         LblTitle.TranslationY = -30;
-        LblWelcome.Opacity = 0;
         LblBest.Opacity = 0;
         BtnPlayEasy.Opacity = 0;
         BtnPlayEasy.TranslationY = 20;
         BtnPlayHard.Opacity = 0;
         BtnPlayHard.TranslationY = 20;
-        BtnScores.Opacity = 0;
+        
         BtnSettings.Opacity = 0;
     }
 
@@ -225,9 +301,7 @@ public partial class StartPage : ContentPage
 
         await Task.Delay(60);
 
-        await Task.WhenAll(
-            LblWelcome.FadeTo(1, 250, Easing.CubicOut),
-            LblBest.FadeTo(1, 250, Easing.CubicOut));
+        await LblBest.FadeTo(1, 250, Easing.CubicOut);
 
         await Task.Delay(60);
 
@@ -240,7 +314,7 @@ public partial class StartPage : ContentPage
         await Task.Delay(60);
 
         await Task.WhenAll(
-            BtnScores.FadeTo(1, 200, Easing.CubicOut),
+            
             BtnSettings.FadeTo(1, 200, Easing.CubicOut));
     }
 
@@ -248,16 +322,6 @@ public partial class StartPage : ContentPage
     {
         await btn.ScaleTo(0.93, 80, Easing.CubicIn);
         await btn.ScaleTo(1.0, 100, Easing.CubicOut);
-    }
-
-    private async Task AnimateShake(View view)
-    {
-        for (int i = 0; i < 3; i++)
-        {
-            await view.TranslateTo(-8, 0, 55);
-            await view.TranslateTo(8, 0, 55);
-        }
-        await view.TranslateTo(0, 0, 55);
     }
 
     // ── Кнопки ────────────────────────────────────────────────
@@ -268,7 +332,7 @@ public partial class StartPage : ContentPage
         var btn = mode == GameMode.Easy ? BtnPlayEasy : BtnPlayHard;
         await AnimateButtonPress(btn);
 
-        // Если аккаунта нет — открываем LoginPage
+        // Имя должно быть уже сохранено после первого запуска
         var name = _accountService.GetCurrentName();
         if (name == null)
         {
@@ -294,13 +358,7 @@ public partial class StartPage : ContentPage
         }
     }
 
-    private async void OnScoresClicked(object sender, EventArgs e)
-    {
-        if (_isNavigating) return;
-        await AnimateButtonPress(BtnScores);
-        _isNavigating = true;
-        await Navigation.PushAsync(new ScorePage(_themeService, _scoreService));
-    }
+
 
     private async void OnSettingsClicked(object sender, EventArgs e)
     {
@@ -309,20 +367,5 @@ public partial class StartPage : ContentPage
         _isNavigating = true;
         await Navigation.PushAsync(
             new SettingsPage(_themeService, _accountService, this));
-    }
-
-    // ── Утилиты ───────────────────────────────────────────────
-    private static string CleanName(string raw)
-    {
-        string filtered = new string(
-            raw.Where(c => char.IsLetterOrDigit(c) || c == ' ' || c == '-' || c == '_')
-               .ToArray());
-
-        while (filtered.Contains("  "))
-            filtered = filtered.Replace("  ", " ");
-
-        filtered = filtered.Trim();
-
-        return filtered.Length > 16 ? filtered[..16] : filtered;
     }
 }

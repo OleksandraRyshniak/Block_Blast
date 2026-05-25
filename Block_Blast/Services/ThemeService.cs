@@ -51,38 +51,38 @@ namespace Block_Blast.Services
         private List<Theme> CreateThemes()
         {
             return new List<Theme>
-            {
-                // Светлая тема
-                new Theme(
-                    name:            "Light",
-                    backgroundColor: Color.FromArgb("#F5F5F5"),
-                    textColor:       Color.FromArgb("#212121"),
-                    accentColor:     Color.FromArgb("#3498DB"),
-                    cellEmptyColor:  Color.FromArgb("#E0E0E0"),
-                    cellBorderColor: Color.FromArgb("#BDBDBD")
-                ),
- 
-                // Тёмная тема
-                new Theme(
-                    name:            "Dark",
-                    backgroundColor: Color.FromArgb("#1A1A2E"),
-                    textColor:       Color.FromArgb("#E0E0E0"),
-                    accentColor:     Color.FromArgb("#E94560"),
-                    cellEmptyColor:  Color.FromArgb("#16213E"),
-                    cellBorderColor: Color.FromArgb("#0F3460")
-                ),
- 
-                // Цветная тема
-                new Theme(
-                    name:            "Colorful",
-                    backgroundColor: Color.FromArgb("#2D1B69"),
-                    textColor:       Color.FromArgb("#FFFFFF"),
-                    accentColor:     Color.FromArgb("#FF6B6B"),
-                    cellEmptyColor:  Color.FromArgb("#3D2B7D"),
-                    cellBorderColor: Color.FromArgb("#6C4FBF")
-                )
-            };
+    {
+        // Light — синяя рамка как на скрине
+   new Theme(
+    name:            "Light",
+    backgroundColor: Color.FromArgb("#F0F0F8"),   // чуть голубоватый белый
+    textColor:       Color.FromArgb("#0D0D1A"),   // почти чёрный — хорошо виден
+    accentColor:     Color.FromArgb("#0099CC"),   // насыщенный синий вместо бледного
+    cellEmptyColor:  Color.FromArgb("#DCDCF0"),   // светло-серый с фиолетовым
+    cellBorderColor: Color.FromArgb("#9999BB")    // средний серо-синий
+),
+        // Dark — красная рамка как на скрине, текст светлый
+        new Theme(
+            name:            "Dark",
+            backgroundColor: Color.FromArgb("#1A1A2E"),
+            textColor:       Color.FromArgb("#FFFFFF"),   // был #E0E0E0 — теперь белый, чётче
+            accentColor:     Color.FromArgb("#E94560"),
+            cellEmptyColor:  Color.FromArgb("#16213E"),
+            cellBorderColor: Color.FromArgb("#0F3460")
+        ),
+
+        // Colorful — красная/розовая рамка, белый текст
+        new Theme(
+            name:            "Colorful",
+            backgroundColor: Color.FromArgb("#2D1B69"),
+            textColor:       Color.FromArgb("#FFFFFF"),
+            accentColor:     Color.FromArgb("#FF6B6B"),
+            cellEmptyColor:  Color.FromArgb("#3D2B7D"),
+            cellBorderColor: Color.FromArgb("#6C4FBF")
+        )
+    };
         }
+    
     }
 
 }

@@ -26,7 +26,7 @@ namespace Block_Blast
 
             builder.Services.AddTransient<StartPage>();
             builder.Services.AddTransient<GamePage>();
-            builder.Services.AddTransient<ScorePage>();
+
             builder.Services.AddTransient<SettingsPage>();
 
 

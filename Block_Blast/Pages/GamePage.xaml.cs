@@ -8,23 +8,12 @@ namespace Block_Blast.Pages;
 
 public partial class GamePage : ContentPage
 {
-    // ══════════════════════════════════════════════════════════
-    // КОНСТАНТЫ
-    // ══════════════════════════════════════════════════════════
     private const int CellSize = 36;
     private const int BlockAreaSize = 100;
     private const int MiniCellSize = 22;
-
-    // ══════════════════════════════════════════════════════════
-    // СЕРВИСЫ
-    // ══════════════════════════════════════════════════════════
     private readonly ThemeService _themeService;
     private readonly ScoreService _scoreService;
     private readonly Game _game;
-
-    // ══════════════════════════════════════════════════════════
-    // UI
-    // ══════════════════════════════════════════════════════════
     private Label LblScoreTitle;
     private Label LblBestTitle;
     private Label LblScore;
@@ -32,37 +21,21 @@ public partial class GamePage : ContentPage
     private Grid GameGrid;
     private readonly ContentView[] BlockContainers = new ContentView[3];
     private BoxView[,] _cellViews;
-
-    // ══════════════════════════════════════════════════════════
-    // DRAG STATE
-    // ══════════════════════════════════════════════════════════
     private AbsoluteLayout _rootAbsolute;
     private Border _ghostView;
     private int _draggingIndex = -1;
     private bool _isDragging;
     private Point _ghostStartPos;
 
-    // ══════════════════════════════════════════════════════════
-    // ПРЕВЬЮ
-    // ══════════════════════════════════════════════════════════
-    /// <summary>Клетки, подсвеченные как превью размещения.</summary>
     private List<(int row, int col)> _previewCells = new();
 
-    /// <summary>Клетки подсвеченные как будущие очищаемые линии.</summary>
     private List<(int row, int col)> _lineClearPreviewCells = new();
 
-    /// <summary>Яркий белый/жёлтый цвет для подсветки линий под очистку.</summary>
     private static readonly Color LineClearHighlight = Color.FromArgb("#FFFFAA");
 
-    /// <summary>Все клетки подсвеченные как hint (все варианты куда блок влезет).</summary>
     private List<(int row, int col)> _hintCells = new();
 
-    /// <summary>Индекс блока для которого сейчас показан hint (-1 = нет).</summary>
     private int _hintIndex = -1;
-
-    // ══════════════════════════════════════════════════════════
-    // КОНСТРУКТОР
-    // ══════════════════════════════════════════════════════════
     public GamePage(
         Player player,
         GameMode mode,
@@ -81,55 +54,77 @@ public partial class GamePage : ContentPage
         _game.GameOver += OnGameOver;
     }
 
-    // ══════════════════════════════════════════════════════════
-    // UI BUILD
-    // ══════════════════════════════════════════════════════════
     private void BuildUI()
     {
-        BackgroundColor = Colors.Black;
+        BackgroundColor = Color.FromArgb("#0D0D1A");
 
         LblScoreTitle = new Label
         {
-            Text = AppResources.score,
-            FontSize = 18,
-            TextColor = Colors.White,
-            HorizontalOptions = LayoutOptions.Center
+            FontFamily = "PressStart2P",
+            FontSize = 20,
+            TextColor = Color.FromArgb("#888899"),
+            HorizontalOptions = LayoutOptions.Center,
+            CharacterSpacing = 2
         };
         LblScore = new Label
         {
             Text = "0",
-            FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.Lime,
-            HorizontalOptions = LayoutOptions.Center
+            FontFamily = "PressStart2P",
+            FontSize = 20,
+            TextColor = Color.FromArgb("#00F5FF"),
+            HorizontalOptions = LayoutOptions.Center,
+            Shadow = new Shadow
+            {
+                Brush = new SolidColorBrush(Color.FromArgb("#00F5FF")),
+                Offset = new Point(3, 3),
+                Radius = 0,
+                Opacity = 0.6f
+            }
         };
         LblBestTitle = new Label
         {
-            Text = AppResources.best,
-            FontSize = 18,
-            TextColor = Colors.White,
-            HorizontalOptions = LayoutOptions.Center
+            FontFamily = "PressStart2P",
+            FontSize = 20,
+            TextColor = Color.FromArgb("#888899"),
+            HorizontalOptions = LayoutOptions.Center,
+            CharacterSpacing = 2
         };
         LblBest = new Label
         {
             Text = "0",
-            FontSize = 24,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.Gold,
-            HorizontalOptions = LayoutOptions.Center
+            FontFamily = "PressStart2P",
+            FontSize = 20,
+            TextColor = Color.FromArgb("#FFE500"),
+            HorizontalOptions = LayoutOptions.Center,
+            Shadow = new Shadow
+            {
+                Brush = new SolidColorBrush(Color.FromArgb("#FFE500")),
+                Offset = new Point(3, 3),
+                Radius = 0,
+                Opacity = 0.6f
+            }
         };
 
-        var scoreRow = new Grid
+        var scoreCard = new Border
         {
-            ColumnDefinitions =
+            BackgroundColor = Color.FromArgb("#1A1A2E"),
+            StrokeThickness = 2,
+            Stroke = new SolidColorBrush(Color.FromArgb("#00F5FF")),
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.Rectangle(),
+            Padding = new Thickness(12, 10),
+            Content = new Grid
+            {
+                ColumnDefinitions =
             {
                 new ColumnDefinition(GridLength.Star),
                 new ColumnDefinition(GridLength.Star)
-            },
-            Padding = new Thickness(10)
+            }
+            }
         };
-        scoreRow.Add(new VerticalStackLayout { Children = { LblScoreTitle, LblScore } }, 0, 0);
-        scoreRow.Add(new VerticalStackLayout { Children = { LblBestTitle, LblBest } }, 1, 0);
+
+        var scoreGrid = (Grid)scoreCard.Content;
+        scoreGrid.Add(new VerticalStackLayout { Spacing = 4, Children = { LblScoreTitle, LblScore } }, 0, 0);
+        scoreGrid.Add(new VerticalStackLayout { Spacing = 4, Children = { LblBestTitle, LblBest } }, 1, 0);
 
         GameGrid = new Grid
         {
@@ -139,9 +134,21 @@ public partial class GamePage : ContentPage
             ColumnSpacing = 0
         };
 
+        var boardCard = new Border
+        {
+            BackgroundColor = Color.FromArgb("#1A1A2E"),
+            StrokeThickness = 2,
+            Stroke = new SolidColorBrush(Color.FromArgb("#39FF14")),
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.Rectangle(),
+            Padding = new Thickness(6),
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Content = GameGrid
+        };
+
         var blocksRow = new HorizontalStackLayout
         {
-            Spacing = 25,
+            Spacing = 20,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
         };
@@ -152,7 +159,6 @@ public partial class GamePage : ContentPage
             {
                 WidthRequest = BlockAreaSize,
                 HeightRequest = BlockAreaSize,
-                BackgroundColor = Colors.Transparent,
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center
             };
@@ -160,20 +166,30 @@ public partial class GamePage : ContentPage
             blocksRow.Children.Add(container);
         }
 
+        var blocksCard = new Border
+        {
+            BackgroundColor = Color.FromArgb("#1A1A2E"),
+            StrokeThickness = 2,
+            Stroke = new SolidColorBrush(Color.FromArgb("#FF3CAC")),
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.Rectangle(),
+            Padding = new Thickness(14, 10),
+            Content = blocksRow
+        };
+
         var pageContentGrid = new Grid
         {
             RowDefinitions =
-            {
-                new RowDefinition(GridLength.Auto),
-                new RowDefinition(GridLength.Star),
-                new RowDefinition(GridLength.Auto)
-            },
-            Padding = new Thickness(20, 50, 20, 30),
-            RowSpacing = 20
+        {
+            new RowDefinition(GridLength.Auto),
+            new RowDefinition(GridLength.Star),
+            new RowDefinition(GridLength.Auto)
+        },
+            Padding = new Thickness(16, 48, 16, 24),
+            RowSpacing = 16
         };
-        pageContentGrid.Add(scoreRow, 0, 0);
-        pageContentGrid.Add(GameGrid, 0, 1);
-        pageContentGrid.Add(blocksRow, 0, 2);
+        pageContentGrid.Add(scoreCard, 0, 0);
+        pageContentGrid.Add(boardCard, 0, 1);
+        pageContentGrid.Add(blocksCard, 0, 2);
 
         _rootAbsolute = new AbsoluteLayout();
         AbsoluteLayout.SetLayoutBounds(pageContentGrid, new Rect(0, 0, 1, 1));
@@ -183,9 +199,17 @@ public partial class GamePage : ContentPage
         Content = _rootAbsolute;
     }
 
-    // ══════════════════════════════════════════════════════════
-    // LIFECYCLE
-    // ══════════════════════════════════════════════════════════
+    private void ApplyTheme()
+    {
+        var t = _themeService.Current;
+        BackgroundColor = t.BackgroundColor;
+        LblScore.TextColor = t.AccentColor;
+        LblBest.TextColor = t.Name == "Light"
+            ? Color.FromArgb("#B8860B") : Colors.Gold;
+        LblScoreTitle.TextColor = t.TextColor;
+        LblBestTitle.TextColor = t.TextColor;
+    }
+
     protected override void OnAppearing()
     {
         base.OnAppearing();
@@ -208,16 +232,13 @@ public partial class GamePage : ContentPage
         _game.GameOver -= OnGameOver;
     }
 
-    private void ApplyTheme() => _themeService.Current.Apply(this);
+    
     private void ApplyLocalization()
     {
         LblScoreTitle.Text = AppResources.score;
-        LblBestTitle.Text = AppResources.best;
+        LblBestTitle.Text = "🏆";
     }
 
-    // ══════════════════════════════════════════════════════════
-    // BOARD
-    // ══════════════════════════════════════════════════════════
     private void BuildBoard()
     {
         GameGrid.Children.Clear();
@@ -261,11 +282,6 @@ public partial class GamePage : ContentPage
             }
     }
 
-    // ══════════════════════════════════════════════════════════
-    // ПРЕВЬЮ РАЗМЕЩЕНИЯ
-    // ══════════════════════════════════════════════════════════
-
-    /// <summary>Подсвечиваем клетки куда упадёт блок.</summary>
     private void ShowPreview(List<(int row, int col)> cells, Color blockColor)
     {
         ClearPreview();
@@ -279,7 +295,6 @@ public partial class GamePage : ContentPage
             _cellViews[r, c].BackgroundColor = previewColor;
     }
 
-    /// <summary>Убираем превью — восстанавливаем исходные цвета.</summary>
     private void ClearPreview()
     {
         if (_previewCells.Count == 0) return;
@@ -293,13 +308,6 @@ public partial class GamePage : ContentPage
         _previewCells.Clear();
     }
 
-    // ── Подсветка линий под очистку ───────────────────────────
-
-    /// <summary>
-    /// Подсвечивает всю строку/столбец ярко-жёлтым если она будет очищена
-    /// после размещения блока на previewCells.
-    /// Вызывается сразу после ShowPreview.
-    /// </summary>
     private void ShowLineClearPreview(int blockIndex, int startRow, int startCol)
     {
         ClearLineClearPreview();
@@ -332,17 +340,15 @@ public partial class GamePage : ContentPage
         }
     }
 
-    /// <summary>Убирает подсветку линий под очистку.</summary>
     private void ClearLineClearPreview()
     {
         if (_lineClearPreviewCells.Count == 0) return;
         var theme = _themeService.Current;
         foreach (var (r, c) in _lineClearPreviewCells)
         {
-            // Восстанавливаем: если клетка в _previewCells — цвет блока, иначе нормальный
             if (_previewCells.Contains((r, c)))
             {
-                // оставим — перекрасится при следующем ShowPreview
+               
             }
             else
             {
@@ -354,12 +360,6 @@ public partial class GamePage : ContentPage
         _lineClearPreviewCells.Clear();
     }
 
-    // ── Hint: все позиции куда блок вообще влезет ─────────────
-
-    /// <summary>
-    /// Подсвечивает очень слабо ВСЕ клетки где может встать блок.
-    /// Вызывается при первом касании контейнера (TapGesture).
-    /// </summary>
     private void ShowHint(int blockIndex)
     {
         ClearHint();
@@ -369,7 +369,6 @@ public partial class GamePage : ContentPage
         var block = _game.NextBlocks[blockIndex];
         var theme = _themeService.Current;
 
-        // Очень слабая подсветка — 12% opacity цвета блока
         var hintColor = Color.FromRgba(
             block.BlockColor.Red,
             block.BlockColor.Green,
@@ -384,9 +383,6 @@ public partial class GamePage : ContentPage
             {
                 var cells = _game.Board.GetPreviewCells(block, r, c);
                 if (cells.Count == 0) continue;
-
-                // Подсвечиваем только верхнюю-левую клетку каждой валидной позиции
-                // иначе половина доски будет закрашена
                 foreach (var (pr, pc) in cells)
                 {
                     if (!_hintCells.Contains((pr, pc)))
@@ -400,7 +396,6 @@ public partial class GamePage : ContentPage
         }
     }
 
-    /// <summary>Убирает hint-подсветку.</summary>
     private void ClearHint()
     {
         if (_hintCells.Count == 0) return;
@@ -414,8 +409,6 @@ public partial class GamePage : ContentPage
         _hintCells.Clear();
         _hintIndex = -1;
     }
-
-    /// <summary>Вычисляем row/col из текущей позиции ghost.</summary>
     private (int row, int col, bool valid) GetBoardCell(int blockIndex)
     {
         if (_ghostView == null) return (-1, -1, false);
@@ -442,10 +435,6 @@ public partial class GamePage : ContentPage
         bool valid = row >= 0 && row < Board.Rows && col >= 0 && col < Board.Cols;
         return (row, col, valid);
     }
-
-    // ══════════════════════════════════════════════════════════
-    // ПОДСВЕТКА НЕДОСТУПНЫХ БЛОКОВ
-    // ══════════════════════════════════════════════════════════
     private void UpdateBlockAvailability()
     {
         for (int i = 0; i < 3; i++)
@@ -457,12 +446,9 @@ public partial class GamePage : ContentPage
         }
     }
 
-    // ══════════════════════════════════════════════════════════
-    // BLOCKS
-    // ══════════════════════════════════════════════════════════
     private void DrawNextBlocks()
     {
-        ClearHint(); // сбрасываем hint при обновлении блоков
+        ClearHint();
         for (int i = 0; i < 3; i++)
             DrawMiniBlock(i);
         UpdateBlockAvailability();
@@ -507,18 +493,14 @@ public partial class GamePage : ContentPage
         SetupDrag(index);
     }
 
-    // ══════════════════════════════════════════════════════════
-    // DRAG
-    // ══════════════════════════════════════════════════════════
     private void SetupDrag(int idx)
     {
         var container = BlockContainers[idx];
 
-        // ── Tap: показать hint всех доступных позиций ──────────
         var tap = new TapGestureRecognizer();
         tap.Tapped += (s, e) =>
         {
-            // Переключение: тап на тот же блок — убрать hint
+
             if (_hintIndex == idx)
                 ClearHint();
             else
@@ -526,7 +508,6 @@ public partial class GamePage : ContentPage
         };
         container.GestureRecognizers.Add(tap);
 
-        // ── Pan: drag ─────────────────────────────────────────
         var pan = new PanGestureRecognizer();
 
         pan.PanUpdated += async (s, e) =>
@@ -539,10 +520,9 @@ public partial class GamePage : ContentPage
                         _isDragging = true;
                         _draggingIndex = idx;
 
-                        // Hint больше не нужен — заменяем на превью при движении
                         ClearHint();
 
-                        _ = container.FadeTo(0.25, 100);
+                        _ = container.FadeToAsync(0.25, 100);
 
                         _ghostStartPos = GetAbsolutePosition(container);
                         _ghostView = BuildGhostView(idx);
@@ -563,13 +543,11 @@ public partial class GamePage : ContentPage
                         _ghostView.TranslationX = e.TotalX;
                         _ghostView.TranslationY = e.TotalY;
 
-                        // ── Превью ────────────────────────────────
                         var (row, col, valid) = GetBoardCell(idx);
                         if (valid)
                         {
                             var block = _game.NextBlocks[idx];
 
-                            // Сначала пробуем точную позицию, потом ±1
                             var preview = _game.Board.GetPreviewCells(block, row, col);
                             int finalRow = row, finalCol = col;
 
@@ -591,7 +569,6 @@ public partial class GamePage : ContentPage
                             if (preview.Count > 0)
                             {
                                 ShowPreview(preview, block.BlockColor);
-                                // Подсвечиваем линии которые очистятся
                                 ShowLineClearPreview(idx, finalRow, finalCol);
                             }
                             else
@@ -617,7 +594,7 @@ public partial class GamePage : ContentPage
                         ClearHint();
                         ClearLineClearPreview();
                         ClearPreview();
-                        _ = container.FadeTo(1.0, 100);
+                        _ = container.FadeToAsync(1.0, 100);
 
                         bool placed = false;
 
@@ -646,12 +623,12 @@ public partial class GamePage : ContentPage
                             if (!placed)
                             {
                                 await Task.WhenAll(
-                                    ghost.TranslateTo(0, 0, 180, Easing.SpringOut),
-                                    ghost.FadeTo(0, 180));
+                                    ghost.TranslateToAsync(0, 0, 180, Easing.SpringOut),
+                                    ghost.FadeToAsync(0, 180));
                             }
                             else
                             {
-                                await ghost.FadeTo(0, 100);
+                                await ghost.FadeToAsync(0, 100);
                             }
 
                             _rootAbsolute.Remove(ghost);
@@ -709,9 +686,6 @@ public partial class GamePage : ContentPage
         };
     }
 
-    // ══════════════════════════════════════════════════════════
-    // HELPERS
-    // ══════════════════════════════════════════════════════════
     private Point GetAbsolutePosition(View view)
     {
         double x = 0, y = 0;
@@ -724,24 +698,15 @@ public partial class GamePage : ContentPage
         return new Point(x, y);
     }
 
-    // ══════════════════════════════════════════════════════════
-    // АНИМАЦИЯ ОЧИСТКИ — ВОЛНА
-    // ══════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// Анимирует очистку линий волной: клетки исчезают по одной,
-    /// затем поле перерисовывается.
-    /// </summary>
     private async Task AnimateClearLines(List<(bool isRow, int index)> lines)
     {
-        // Для каждой линии — волна слева направо / сверху вниз
         var tasks = new List<Task>();
 
         foreach (var (isRow, idx) in lines)
         {
             if (isRow)
             {
-                // Строка — анимируем по столбцам
+
                 for (int c = 0; c < Board.Cols; c++)
                 {
                     var cell = _cellViews[idx, c];
@@ -751,7 +716,6 @@ public partial class GamePage : ContentPage
             }
             else
             {
-                // Столбец — анимируем по строкам
                 for (int r = 0; r < Board.Rows; r++)
                 {
                     var cell = _cellViews[idx, r];
@@ -763,10 +727,8 @@ public partial class GamePage : ContentPage
 
         await Task.WhenAll(tasks);
 
-        // После волны — перерисовываем доску
         DrawBoard();
 
-        // Восстанавливаем opacity всех клеток
         for (int r = 0; r < Board.Rows; r++)
             for (int c = 0; c < Board.Cols; c++)
                 _cellViews[r, c].Opacity = 1;
@@ -775,25 +737,20 @@ public partial class GamePage : ContentPage
     private static async Task AnimateCellDisappear(BoxView cell, int delayMs)
     {
         await Task.Delay(delayMs);
-        await cell.ScaleTo(0.1, 120, Easing.CubicIn);
+        await cell.ScaleToAsync(0.1, 120, Easing.CubicIn);
         cell.Opacity = 0;
-        cell.Scale = 1; // сброс для перерисовки
+        cell.Scale = 1;
     }
-
-    // ══════════════════════════════════════════════════════════
-    // КОМБО-ТЕКСТ
-    // ══════════════════════════════════════════════════════════
-
-    private async Task ShowComboLabel(int combo)
+   private async Task ShowComboLabel(int combo)
     {
-        if (combo < 2) return; // комбо с 2-го хода
+        if (combo < 2) return; 
 
         string text = combo switch
         {
-            2 => "COMBO ×1.5! 🔥",
-            3 => "COMBO ×2! 🔥🔥",
-            4 => "COMBO ×2.5! 💥",
-            _ => "COMBO ×3! 🌟"
+            2 => $"{AppResources.combo1} ×1.5! 🔥",
+            3 => $"{AppResources.combo1} ×2! 🔥🔥",
+            4 => $"{AppResources.combo1} ×2.5! 💥",
+            _ => $"{AppResources.combo1} ×3! 🌟"
         };
 
         var label = new Label
@@ -814,7 +771,6 @@ public partial class GamePage : ContentPage
             }
         };
 
-        // Размещаем поверх доски по центру
         var boardPos = GetAbsolutePosition(GameGrid);
         double cx = boardPos.X + (Board.Cols * CellSize) / 2.0 - 80;
         double cy = boardPos.Y + (Board.Rows * CellSize) / 2.0 - 20;
@@ -823,23 +779,18 @@ public partial class GamePage : ContentPage
         AbsoluteLayout.SetLayoutFlags(label, AbsoluteLayoutFlags.None);
         _rootAbsolute.Add(label);
 
-        // Анимация: появляется, плывёт вверх, исчезает
         await Task.WhenAll(
-            label.FadeTo(1, 150),
-            label.TranslateTo(0, -20, 150, Easing.CubicOut));
+            label.FadeToAsync(1, 150),
+            label.TranslateToAsync(0, -20, 150, Easing.CubicOut));
 
         await Task.Delay(500);
 
         await Task.WhenAll(
-            label.FadeTo(0, 300),
-            label.TranslateTo(0, -50, 300, Easing.CubicIn));
+            label.FadeToAsync(0, 300),
+            label.TranslateToAsync(0, -50, 300, Easing.CubicIn));
 
         _rootAbsolute.Remove(label);
     }
-
-    // ══════════════════════════════════════════════════════════
-    // СОБЫТИЯ
-    // ══════════════════════════════════════════════════════════
     private void OnScoreChanged(int score)
     {
         MainThread.BeginInvokeOnMainThread(() =>
@@ -847,10 +798,9 @@ public partial class GamePage : ContentPage
             LblScore.Text = score.ToString("N0");
             LblBest.Text = _game.Player.BestScore.ToString("N0");
 
-            // Маленькая анимация счёта
-            _ = LblScore.ScaleTo(1.25, 80).ContinueWith(_ =>
+            _ = LblScore.ScaleToAsync(1.25, 80).ContinueWith(_ =>
                 MainThread.BeginInvokeOnMainThread(() =>
-                    LblScore.ScaleTo(1.0, 100)));
+                    LblScore.ScaleToAsync(1.0, 100)));
         });
     }
 
@@ -879,15 +829,11 @@ public partial class GamePage : ContentPage
             await Task.WhenAll(tasks);
         });
     }
-
-    /// <summary>
-    /// Всплывающее "BOARD CLEAR! +360" золотое сообщение.
-    /// </summary>
     private async Task ShowBoardClearLabel()
     {
         var label = new Label
         {
-            Text = "✨ BOARD CLEAR! +360",
+            Text = "✨ "+AppResources.board_clear+" +360",
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
             TextColor = Colors.Gold,
@@ -911,14 +857,14 @@ public partial class GamePage : ContentPage
         _rootAbsolute.Add(label);
 
         await Task.WhenAll(
-            label.FadeTo(1, 200),
-            label.ScaleTo(1.15, 200, Easing.CubicOut));
+            label.FadeToAsync(1, 200),
+            label.ScaleToAsync(1.15, 200, Easing.CubicOut));
 
         await Task.Delay(700);
 
         await Task.WhenAll(
-            label.FadeTo(0, 350),
-            label.TranslateTo(0, -40, 350, Easing.CubicIn));
+            label.FadeToAsync(0, 350),
+            label.TranslateToAsync(0, -40, 350, Easing.CubicIn));
 
         _rootAbsolute.Remove(label);
     }
@@ -932,10 +878,10 @@ public partial class GamePage : ContentPage
             // Детальная статистика в сообщении
             string stats =
                 $"{AppResources.score}: {_game.Player.Score:N0}\n" +
-                $"Lines: {_game.Player.TotalLinesCleared}\n" +
-                $"Best combo: ×{1.0 + (_game.Player.MaxCombo - 1) * 0.5:0.0}";
+                $"{AppResources.lines}: {_game.Player.TotalLinesCleared}\n" +
+                $"{AppResources.best_combo}: ×{1.0 + (_game.Player.MaxCombo - 1) * 0.5:0.0}";
 
-            bool again = await DisplayAlert(
+            bool again = await DisplayAlertAsync(
                 AppResources.gameover,
                 stats,
                 AppResources.playagain,

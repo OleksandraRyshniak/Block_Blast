@@ -4,8 +4,8 @@ using Block_Blast.Services;
 namespace Block_Blast.Pages;
 
 /// <summary>
-/// Экран входа / создания аккаунта.
-/// Показывается при первом запуске и после logout.
+/// Экран ввода имени.
+/// Показывается ТОЛЬКО при первом запуске приложения (имя ещё не сохранено).
 /// canCancel = true только если уже есть аккаунт (выход из Settings).
 /// </summary>
 public partial class LoginPage : ContentPage
@@ -20,9 +20,11 @@ public partial class LoginPage : ContentPage
     private Label LblTitle;
     private Label LblSubtitle;
     private Entry EntryName;
-    private Label LblHint;       // живая подсказка рекорда / ошибки
+    private Label LblHint;
     private Button BtnConfirm;
     private Button BtnCancel;
+   
+    private Grid _rootGrid;
 
     // ── Результат ─────────────────────────────────────────────
     public string? ResultName { get; private set; }
@@ -42,136 +44,18 @@ public partial class LoginPage : ContentPage
 
         Shell.SetNavBarIsVisible(this, false);
         BuildUI();
+        ApplyTheme();
         PrepareEntrance();
     }
 
     // ── Построение UI ─────────────────────────────────────────
-    private void BuildUI()
-    {
-        BackgroundColor = Color.FromArgb("#0A0A14");
 
-        var decoTL = Deco("#00F5FF", 0.12, 120, 120, LayoutOptions.Start, LayoutOptions.Start);
-        var decoBR = Deco("#FF3CAC", 0.12, 100, 100, LayoutOptions.End, LayoutOptions.End);
-        var decoTR = Deco("#FFE500", 0.08, 70, 70, LayoutOptions.End, LayoutOptions.Start);
-        var decoBL = Deco("#39FF14", 0.08, 60, 60, LayoutOptions.Start, LayoutOptions.End);
 
-        LblTitle = new Label
-        {
-            Text = "BLOCK\nBLAST",
-            FontFamily = "PressStart2P",
-            FontSize = 28,
-            TextColor = Color.FromArgb("#00F5FF"),
-            HorizontalOptions = LayoutOptions.Center,
-            HorizontalTextAlignment = TextAlignment.Center,
-            LineHeight = 1.4,
-            Shadow = new Shadow
-            {
-                Brush = new SolidColorBrush(Color.FromArgb("#00F5FF")),
-                Offset = new Point(4, 4),
-                Radius = 0,
-                Opacity = 0.6f
-            }
-        };
+    // Добавь в поля класса:
+    private Border _card;
+    private Label LblOneTimeHint;
 
-        LblSubtitle = new Label
-        {
-            Text = "ENTER YOUR NAME",
-            FontFamily = "PressStart2P",
-            FontSize = 9,
-            TextColor = Color.FromArgb("#888888"),
-            HorizontalOptions = LayoutOptions.Center,
-            CharacterSpacing = 2
-        };
 
-        EntryName = new Entry
-        {
-            Placeholder = "Your name...",
-            MaxLength = 16,
-            FontSize = 18,
-            HorizontalTextAlignment = TextAlignment.Center,
-            BackgroundColor = Color.FromArgb("#1A1A2E"),
-            TextColor = Colors.White,
-            PlaceholderColor = Color.FromArgb("#555555"),
-        };
-        EntryName.Completed += (s, e) => OnConfirm();
-        EntryName.TextChanged += OnTextChanged;
-
-        // Живая подсказка: зелёная = нашли рекорд, красная = ошибка
-        LblHint = new Label
-        {
-            FontSize = 11,
-            HorizontalOptions = LayoutOptions.Center,
-            HorizontalTextAlignment = TextAlignment.Center,
-            IsVisible = false
-        };
-
-        var scoreHint = new Label
-        {
-            Text = "Returning player? Use your old name\nto load your record.",
-            FontSize = 11,
-            TextColor = Color.FromArgb("#444466"),
-            HorizontalOptions = LayoutOptions.Center,
-            HorizontalTextAlignment = TextAlignment.Center,
-        };
-
-        BtnConfirm = new Button
-        {
-            Text = "▶  START",
-            FontFamily = "PressStart2P",
-            FontSize = 12,
-            CornerRadius = 0,
-            HeightRequest = 54,
-            BackgroundColor = Color.FromArgb("#00F5FF"),
-            TextColor = Color.FromArgb("#0A0A14"),
-            BorderWidth = 0
-        };
-        BtnConfirm.Clicked += (s, e) => OnConfirm();
-
-        BtnCancel = new Button
-        {
-            Text = AppResources.back,
-            FontFamily = "PressStart2P",
-            FontSize = 10,
-            CornerRadius = 0,
-            HeightRequest = 44,
-            BackgroundColor = Colors.Transparent,
-            TextColor = Color.FromArgb("#888888"),
-            BorderColor = Color.FromArgb("#333333"),
-            BorderWidth = 1,
-            IsVisible = _canCancel
-        };
-        BtnCancel.Clicked += (s, e) => OnCancel();
-
-        var card = new Border
-        {
-            BackgroundColor = Color.FromArgb("#12122A"),
-            StrokeThickness = 2,
-            Stroke = new SolidColorBrush(Color.FromArgb("#00F5FF")),
-            StrokeShape = new Microsoft.Maui.Controls.Shapes.Rectangle(),
-            Padding = new Thickness(24, 28),
-            Content = new VerticalStackLayout
-            {
-                Spacing = 16,
-                Children = { LblSubtitle, EntryName, LblHint, scoreHint, BtnConfirm, BtnCancel }
-            }
-        };
-
-        var centerStack = new VerticalStackLayout
-        {
-            Spacing = 32,
-            VerticalOptions = LayoutOptions.Center,
-            Padding = new Thickness(28, 0),
-            Children = { LblTitle, card }
-        };
-
-        var root = new Grid();
-        root.Children.Add(decoTL);
-        root.Children.Add(decoBR);
-        root.Children.Add(decoTR);
-        root.Children.Add(decoBL);
-        root.Children.Add(new ScrollView { Content = centerStack });
-        Content = root;
-    }
 
     // ── Lifecycle ─────────────────────────────────────────────
     protected override async void OnAppearing()
@@ -181,7 +65,6 @@ public partial class LoginPage : ContentPage
         EntryName.Focus();
     }
 
-    // Физическая кнопка «назад» — блокируем если нет аккаунта
     protected override bool OnBackButtonPressed()
     {
         if (_canCancel) OnCancel();
@@ -193,7 +76,6 @@ public partial class LoginPage : ContentPage
     {
         LblHint.IsVisible = false;
 
-        // Фильтрация символов
         string raw = e.NewTextValue ?? "";
         string filtered = new string(
             raw.Where(c => char.IsLetterOrDigit(c) || c == ' ' || c == '-' || c == '_')
@@ -203,19 +85,6 @@ public partial class LoginPage : ContentPage
 
         if (filtered != raw)
             EntryName.Text = filtered;
-
-        // Живая подсказка рекорда
-        string cleaned = filtered.Trim();
-        if (cleaned.Length >= 2)
-        {
-            int best = _scoreService.GetBestScore(cleaned);
-            if (best > 0)
-            {
-                LblHint.Text = $"🏆 Welcome back! Record: {best:N0}";
-                LblHint.TextColor = Color.FromArgb("#39FF14");
-                LblHint.IsVisible = true;
-            }
-        }
     }
 
     private async void OnConfirm()
@@ -264,14 +133,13 @@ public partial class LoginPage : ContentPage
         await EntryName.TranslateTo(0, 0, 50);
     }
 
-    /// <summary>Ждёт пока пользователь не подтвердит или не отменит.</summary>
     public Task<string?> WaitForResult() => _tcs.Task;
 
     // ── Анимации ──────────────────────────────────────────────
     private void PrepareEntrance()
     {
         LblTitle.Opacity = 0;
-        LblTitle.TranslationY = -30;
+        LblTitle.TranslationY = 0;
         LblTitle.Scale = 0.85;
     }
 
@@ -286,12 +154,213 @@ public partial class LoginPage : ContentPage
     // ── Утилиты ───────────────────────────────────────────────
     private static BoxView Deco(string hex, double opacity, double w, double h,
         LayoutOptions hOpt, LayoutOptions vOpt) => new BoxView
+        {
+            Color = Color.FromArgb(hex),
+            Opacity = opacity,
+            WidthRequest = w,
+            HeightRequest = h,
+            HorizontalOptions = hOpt,
+            VerticalOptions = vOpt
+        };
+    private void BuildUI()
     {
-        Color = Color.FromArgb(hex),
-        Opacity = opacity,
-        WidthRequest = w,
-        HeightRequest = h,
-        HorizontalOptions = hOpt,
-        VerticalOptions = vOpt
-    };
+        Shell.SetNavBarIsVisible(this, false);
+
+        var decoTL = MakeDecoBox("#00F5FF", 0.12, 120, 120, LayoutOptions.Start, LayoutOptions.Start, Thickness.Zero);
+        var decoBR = MakeDecoBox("#FF3CAC", 0.12, 100, 100, LayoutOptions.End, LayoutOptions.End, Thickness.Zero);
+        var decoTR = MakeDecoBox("#FFE500", 0.08, 70, 70, LayoutOptions.End, LayoutOptions.Start, Thickness.Zero);
+        var decoBL = MakeDecoBox("#39FF14", 0.08, 60, 60, LayoutOptions.Start, LayoutOptions.End, Thickness.Zero);
+
+        LblTitle = new Label
+        {
+            Text = "BLOCK\nBLAST",
+            FontFamily = "PressStart2P",
+            FontSize = 28,
+            HorizontalOptions = LayoutOptions.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
+            LineHeight = 1.4
+        };
+
+        LblSubtitle = new Label
+        {
+            Text = "ENTER YOUR NAME",
+            FontFamily = "PressStart2P",
+            FontSize = 9,
+            HorizontalOptions = LayoutOptions.Center,
+            CharacterSpacing = 3
+        };
+
+        LblOneTimeHint = new Label
+        {
+            Text = "You only need to do this once.",
+            FontFamily = "PressStart2P",
+            FontSize = 12,
+            HorizontalOptions = LayoutOptions.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
+            CharacterSpacing = 1
+        };
+
+        EntryName = new Entry
+        {
+            Placeholder = "Your name...",
+            MaxLength = 16,
+            FontFamily = "PressStart2P",
+            FontSize = 14,
+            HorizontalTextAlignment = TextAlignment.Center
+        };
+        EntryName.Completed += (s, e) => OnConfirm();
+        EntryName.TextChanged += OnTextChanged;
+
+        LblHint = new Label
+        {
+            FontFamily = "PressStart2P",
+            FontSize = 8,
+            HorizontalOptions = LayoutOptions.Center,
+            HorizontalTextAlignment = TextAlignment.Center,
+            IsVisible = false
+        };
+
+        BtnConfirm = new Button
+        {
+            Text = "▶  START",
+            FontFamily = "PressStart2P",
+            FontSize = 11,
+            CornerRadius = 0,
+            HeightRequest = 52,
+            BorderWidth = 0
+        };
+        BtnConfirm.Clicked += (s, e) => OnConfirm();
+
+        BtnCancel = new Button
+        {
+            Text = AppResources.back,
+            FontFamily = "PressStart2P",
+            FontSize = 9,
+            CornerRadius = 0,
+            HeightRequest = 44,
+            BackgroundColor = Colors.Transparent,
+            BorderWidth = 2,
+            IsVisible = _canCancel
+        };
+        BtnCancel.Clicked += (s, e) => OnCancel();
+
+        _card = new Border
+        {
+            StrokeThickness = 2,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.Rectangle(),
+            Padding = new Thickness(20, 24),
+            Content = new VerticalStackLayout
+            {
+                Spacing = 14,
+                Children = { LblSubtitle, LblOneTimeHint, EntryName, LblHint, BtnConfirm, BtnCancel }
+            }
+        };
+
+        var centerStack = new VerticalStackLayout
+        {
+            Spacing = 32,
+            VerticalOptions = LayoutOptions.Center,
+            Padding = new Thickness(28, 0),
+            Children = { LblTitle, _card }
+        };
+
+        _rootGrid = new Grid();
+        _rootGrid.Children.Add(decoTL);
+        _rootGrid.Children.Add(decoBR);
+        _rootGrid.Children.Add(decoTR);
+        _rootGrid.Children.Add(decoBL);
+        _rootGrid.Children.Add(new ScrollView { Content = centerStack });
+        Content = _rootGrid;
+    }
+
+    private void ApplyTheme()
+    {
+        var t = _themeService.Current;
+        bool isLight = t.Name == "Light";
+
+        // Фон страницы
+        BackgroundColor = t.BackgroundColor;
+
+        // Декор-боксы — скрываем на светлой теме
+        foreach (var child in _rootGrid.Children)
+        {
+            if (child is BoxView deco)
+                deco.Opacity = isLight ? 0.0 : 0.10;
+        }
+
+        // Заголовок BLOCK BLAST
+        var titleColor = isLight
+            ? Color.FromArgb("#005588")
+            : Color.FromArgb("#00F5FF");
+
+        LblTitle.TextColor = titleColor;
+        LblTitle.Shadow = new Shadow
+        {
+            Brush = new SolidColorBrush(titleColor),
+            Offset = new Point(4, 4),
+            Radius = 0,
+            Opacity = isLight ? 0.25f : 0.60f
+        };
+
+        // "ENTER YOUR NAME"
+        LblSubtitle.TextColor = isLight
+            ? Color.FromArgb("#1A1A2E")
+            : Color.FromArgb("#FFE500");
+
+        // "You only need to do this once."
+        LblOneTimeHint.TextColor = isLight
+            ? Color.FromArgb("#444466")
+            : Color.FromArgb("#888899");
+
+        // Поле ввода
+        EntryName.BackgroundColor = isLight
+            ? Color.FromArgb("#E0E0F0")
+            : Color.FromArgb("#0D0D1A");
+        EntryName.TextColor = isLight
+            ? Color.FromArgb("#0D0D1A")
+            : Colors.White;
+        EntryName.PlaceholderColor = isLight
+            ? Color.FromArgb("#9999BB")
+            : Color.FromArgb("#444466");
+
+        // Кнопка START
+        var accentColor = isLight
+            ? Color.FromArgb("#0077BB")
+            : Color.FromArgb("#00F5FF");
+        BtnConfirm.BackgroundColor = accentColor;
+        BtnConfirm.TextColor = isLight
+            ? Colors.White
+            : Color.FromArgb("#0D0D1A");
+
+        // Кнопка BACK
+        var cancelColor = isLight
+            ? Color.FromArgb("#CC0066")
+            : Color.FromArgb("#FF3CAC");
+        BtnCancel.TextColor = cancelColor;
+        BtnCancel.BorderColor = cancelColor;
+
+        // Карточка
+        _card.BackgroundColor = isLight
+            ? Color.FromArgb("#E8E8F8")
+            : Color.FromArgb("#1A1A2E");
+        _card.Stroke = new SolidColorBrush(isLight
+            ? Color.FromArgb("#0077BB")
+            : Color.FromArgb("#00F5FF"));
+    }
+
+    private static bool IsLightColor(Color c) =>
+        (c.Red * 0.299 + c.Green * 0.587 + c.Blue * 0.114) > 0.6f;
+
+    private static BoxView MakeDecoBox(string hex, double opacity,
+        double w, double h,
+        LayoutOptions hOpt, LayoutOptions vOpt, Thickness margin) => new BoxView
+        {
+            Color = Color.FromArgb(hex),
+            Opacity = opacity,
+            WidthRequest = w,
+            HeightRequest = h,
+            HorizontalOptions = hOpt,
+            VerticalOptions = vOpt,
+            Margin = margin
+        };
 }

@@ -13,7 +13,6 @@ public static class LanguageService
         CultureInfo.DefaultThreadCurrentUICulture = culture;
         AppResources.Culture = culture;
 
-        // Заменяем объект в словаре → DynamicResource обновится сам
         if (Application.Current?.Resources != null)
             Application.Current.Resources["AppStrings"] = new AppResources();
 

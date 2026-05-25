@@ -7,12 +7,10 @@ namespace Block_Blast.Pages;
 
 public partial class SettingsPage : ContentPage
 {
-    // ── Сервисы ───────────────────────────────────────────────
     private readonly ThemeService _themeService;
     private readonly AccountService _accountService;
     private readonly StartPage _startPage;
 
-    // ── UI ────────────────────────────────────────────────────
     private Label LblTitle;
     private Label LblTheme;
     private Label LblLanguage;
@@ -24,7 +22,6 @@ public partial class SettingsPage : ContentPage
 
     private bool _isNavigating = false;
 
-    // ── Конструктор ───────────────────────────────────────────
     public SettingsPage(
         ThemeService themeService,
         AccountService accountService,
@@ -38,13 +35,12 @@ public partial class SettingsPage : ContentPage
         PrepareForEntrance();
     }
 
-    // ── UI ────────────────────────────────────────────────────
     private void BuildUI()
     {
         BackgroundColor = Color.FromArgb("#0D0D1A");
         Shell.SetNavBarIsVisible(this, false);
 
-        // Декор
+
         var decoTopLeft = MakeDecoBox("#FF3CAC", 0.13, 110, 110,
             LayoutOptions.Start, LayoutOptions.Start, Thickness.Zero);
         var decoTopRight = MakeDecoBox("#FFE500", 0.10, 80, 80,
@@ -54,7 +50,6 @@ public partial class SettingsPage : ContentPage
         var decoBottomLeft = MakeDecoBox("#39FF14", 0.09, 70, 70,
             LayoutOptions.Start, LayoutOptions.End, new Thickness(0, 0, 0, 30));
 
-        // Заголовок
         LblTitle = MakePixelLabel(AppResources.settings, 26, "#00F5FF");
         LblTitle.Shadow = new Shadow
         {
@@ -72,8 +67,7 @@ public partial class SettingsPage : ContentPage
             Margin = new Thickness(0, 0, 0, 32)
         };
 
-        // Тема
-        LblTheme = MakePixelLabel(AppResources.theme, 9, "#FFE500");
+        LblTheme = MakePixelLabel(AppResources.theme, 15, "#FFE500");
         LblTheme.Margin = new Thickness(0, 0, 0, 10);
 
         ThemeLayout = new FlexLayout
@@ -86,8 +80,7 @@ public partial class SettingsPage : ContentPage
 
         var themeCard = MakeCard("#FFE500", ThemeLayout, new Thickness(0, 0, 0, 28));
 
-        // Язык
-        LblLanguage = MakePixelLabel(AppResources.language, 9, "#FFE500");
+        LblLanguage = MakePixelLabel(AppResources.language, 15, "#FFE500");
         LblLanguage.Margin = new Thickness(0, 0, 0, 10);
 
         LangLayout = new FlexLayout
@@ -100,14 +93,13 @@ public partial class SettingsPage : ContentPage
 
         var langCard = MakeCard("#39FF14", LangLayout, new Thickness(0, 0, 0, 28));
 
-        // Аккаунт
-        LblAccount = MakePixelLabel("ACCOUNT", 9, "#FF3CAC");
+        LblAccount = MakePixelLabel(AppResources.account, 15, "#FF3CAC");
         LblAccount.Margin = new Thickness(0, 0, 0, 10);
 
         BtnLogout = new Button
         {
             FontFamily = "PressStart2P",
-            FontSize = 9,
+            FontSize = 15,
             TextColor = Color.FromArgb("#FF3CAC"),
             BackgroundColor = Colors.Transparent,
             BorderColor = Color.FromArgb("#FF3CAC"),
@@ -118,12 +110,12 @@ public partial class SettingsPage : ContentPage
         };
         BtnLogout.Clicked += OnLogoutClicked;
 
-        // Кнопка назад
+        
         BtnBack = new Button
         {
             Text = AppResources.back,
             FontFamily = "PressStart2P",
-            FontSize = 10,
+            FontSize = 15,
             TextColor = Color.FromArgb("#FF3CAC"),
             BackgroundColor = Colors.Transparent,
             BorderColor = Color.FromArgb("#FF3CAC"),
@@ -159,7 +151,6 @@ public partial class SettingsPage : ContentPage
         Content = root;
     }
 
-    // ── Жизненный цикл ────────────────────────────────────────
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -178,7 +169,6 @@ public partial class SettingsPage : ContentPage
         LanguageService.LanguageChanged -= ApplyLocalization;
     }
 
-    // ── Тема и локализация ────────────────────────────────────
     private void ApplyTheme() => _themeService.Current.Apply(this);
 
     private void ApplyLocalization()
@@ -188,14 +178,12 @@ public partial class SettingsPage : ContentPage
         LblLanguage.Text = AppResources.language;
         BtnBack.Text = AppResources.back;
 
-        // Текст кнопки выхода с именем текущего игрока
         var name = _accountService.GetCurrentName();
         BtnLogout.Text = name != null
-            ? $"EXIT: {name.ToUpper()}"
-            : "LOGOUT";
+            ? $"{AppResources.exit}: {name.ToUpper()}"
+            : AppResources.logout;
     }
 
-    // ── Анимации ──────────────────────────────────────────────
     private void PrepareForEntrance()
     {
         LblTitle.Opacity = 0; LblTitle.TranslationY = -20;
@@ -234,7 +222,6 @@ public partial class SettingsPage : ContentPage
         await btn.ScaleToAsync(1.0, 100, Easing.CubicOut);
     }
 
-    // ── Кнопки тем / языков ───────────────────────────────────
     private void BuildThemeButtons()
     {
         ThemeLayout.Children.Clear();
@@ -245,7 +232,7 @@ public partial class SettingsPage : ContentPage
             {
                 Text = theme.Name,
                 FontFamily = "PressStart2P",
-                FontSize = 10,
+                FontSize = 15,
                 CornerRadius = 0,
                 Margin = new Thickness(0, 0, 10, 10),
                 HeightRequest = 44,
@@ -274,6 +261,7 @@ public partial class SettingsPage : ContentPage
         {
             ("et", "Eesti"),
             ("en", "English"),
+            ("ru", "Русский")
         };
 
         foreach (var lang in languages)
@@ -306,18 +294,17 @@ public partial class SettingsPage : ContentPage
     // ── Выход из аккаунта ─────────────────────────────────────
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
-        bool confirm = await DisplayAlert(
-            "ACCOUNT",
-            "Exit account and switch player?",
-            "Yes", "No");
+        bool confirm = await DisplayAlertAsync(
+            AppResources.account,
+            AppResources.eaasp,
+            AppResources.yes, AppResources.no);
 
         if (!confirm) return;
 
         await AnimateButtonPress(BtnLogout);
         _accountService.Logout();
 
-        // Возвращаемся на StartPage, затем открываем LoginPage
-        // canCancel=true — можно вернуться (аккаунт уже был)
+     
         await Navigation.PopAsync();
         await _startPage.GoToLogin(canCancel: true);
     }
@@ -330,7 +317,7 @@ public partial class SettingsPage : ContentPage
         await Navigation.PopAsync();
     }
 
-    // ── Фабричные методы ──────────────────────────────────────
+   
     private static Label MakePixelLabel(string text, double size, string hex) => new Label
     {
         Text = text,
