@@ -48,6 +48,12 @@ public partial class GamePage : ContentPage
     /// <summary>Клетки, подсвеченные как превью размещения.</summary>
     private List<(int row, int col)> _previewCells = new();
 
+    /// <summary>Клетки подсвеченные как будущие очищаемые линии.</summary>
+    private List<(int row, int col)> _lineClearPreviewCells = new();
+
+    /// <summary>Яркий белый/жёлтый цвет для подсветки линий под очистку.</summary>
+    private static readonly Color LineClearHighlight = Color.FromArgb("#FFFFAA");
+
     /// <summary>Все клетки подсвеченные как hint (все варианты куда блок влезет).</summary>
     private List<(int row, int col)> _hintCells = new();
 
@@ -287,6 +293,67 @@ public partial class GamePage : ContentPage
         _previewCells.Clear();
     }
 
+    // ── Подсветка линий под очистку ───────────────────────────
+
+    /// <summary>
+    /// Подсвечивает всю строку/столбец ярко-жёлтым если она будет очищена
+    /// после размещения блока на previewCells.
+    /// Вызывается сразу после ShowPreview.
+    /// </summary>
+    private void ShowLineClearPreview(int blockIndex, int startRow, int startCol)
+    {
+        ClearLineClearPreview();
+
+        if (blockIndex >= _game.NextBlocks.Count) return;
+
+        var block = _game.NextBlocks[blockIndex];
+        var lines = _game.Board.GetWouldClearLines(block, startRow, startCol);
+
+        if (lines.Count == 0) return;
+
+        foreach (var (isRow, idx) in lines)
+        {
+            if (isRow)
+            {
+                for (int c = 0; c < Board.Cols; c++)
+                {
+                    _cellViews[idx, c].BackgroundColor = LineClearHighlight;
+                    _lineClearPreviewCells.Add((idx, c));
+                }
+            }
+            else
+            {
+                for (int r = 0; r < Board.Rows; r++)
+                {
+                    _cellViews[r, idx].BackgroundColor = LineClearHighlight;
+                    _lineClearPreviewCells.Add((r, idx));
+                }
+            }
+        }
+    }
+
+    /// <summary>Убирает подсветку линий под очистку.</summary>
+    private void ClearLineClearPreview()
+    {
+        if (_lineClearPreviewCells.Count == 0) return;
+        var theme = _themeService.Current;
+        foreach (var (r, c) in _lineClearPreviewCells)
+        {
+            // Восстанавливаем: если клетка в _previewCells — цвет блока, иначе нормальный
+            if (_previewCells.Contains((r, c)))
+            {
+                // оставим — перекрасится при следующем ShowPreview
+            }
+            else
+            {
+                var cell = _game.Board.Grid[r, c];
+                _cellViews[r, c].BackgroundColor =
+                    cell.IsOccupied ? cell.CellColor : theme.CellEmptyColor;
+            }
+        }
+        _lineClearPreviewCells.Clear();
+    }
+
     // ── Hint: все позиции куда блок вообще влезет ─────────────
 
     /// <summary>
@@ -504,20 +571,38 @@ public partial class GamePage : ContentPage
 
                             // Сначала пробуем точную позицию, потом ±1
                             var preview = _game.Board.GetPreviewCells(block, row, col);
+                            int finalRow = row, finalCol = col;
+
                             if (preview.Count == 0)
                             {
                                 for (int dr = -1; dr <= 1 && preview.Count == 0; dr++)
                                     for (int dc = -1; dc <= 1 && preview.Count == 0; dc++)
-                                        preview = _game.Board.GetPreviewCells(block, row + dr, col + dc);
+                                    {
+                                        var p = _game.Board.GetPreviewCells(block, row + dr, col + dc);
+                                        if (p.Count > 0)
+                                        {
+                                            preview = p;
+                                            finalRow = row + dr;
+                                            finalCol = col + dc;
+                                        }
+                                    }
                             }
 
                             if (preview.Count > 0)
+                            {
                                 ShowPreview(preview, block.BlockColor);
+                                // Подсвечиваем линии которые очистятся
+                                ShowLineClearPreview(idx, finalRow, finalCol);
+                            }
                             else
+                            {
+                                ClearLineClearPreview();
                                 ClearPreview();
+                            }
                         }
                         else
                         {
+                            ClearLineClearPreview();
                             ClearPreview();
                         }
                         break;
@@ -530,6 +615,7 @@ public partial class GamePage : ContentPage
                         _isDragging = false;
 
                         ClearHint();
+                        ClearLineClearPreview();
                         ClearPreview();
                         _ = container.FadeTo(1.0, 100);
 

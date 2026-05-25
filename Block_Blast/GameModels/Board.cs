@@ -119,6 +119,49 @@ public class Board
         return cells;
     }
 
+    /// <summary>
+    /// Симулирует размещение блока и возвращает список линий которые будут очищены.
+    /// Не меняет реальное состояние поля.
+    /// Возвращает пустой список если размещение невозможно или линий нет.
+    /// </summary>
+    public List<(bool isRow, int index)> GetWouldClearLines(Block block, int startRow, int startCol)
+    {
+        var result = new List<(bool isRow, int index)>();
+
+        // Проверяем что можно поставить
+        var placeCells = GetPreviewCells(block, startRow, startCol);
+        if (placeCells.Count == 0) return result;
+
+        // Симулируем: набор занятых клеток = текущие + блок
+        var occupied = new HashSet<(int r, int c)>();
+        for (int r = 0; r < Rows; r++)
+            for (int c = 0; c < Cols; c++)
+                if (Grid[r, c].IsOccupied) occupied.Add((r, c));
+
+        foreach (var (r, c) in placeCells)
+            occupied.Add((r, c));
+
+        // Проверяем строки
+        for (int r = 0; r < Rows; r++)
+        {
+            bool full = true;
+            for (int c = 0; c < Cols; c++)
+                if (!occupied.Contains((r, c))) { full = false; break; }
+            if (full) result.Add((true, r));
+        }
+
+        // Проверяем столбцы
+        for (int c = 0; c < Cols; c++)
+        {
+            bool full = true;
+            for (int r = 0; r < Rows; r++)
+                if (!occupied.Contains((r, c))) { full = false; break; }
+            if (full) result.Add((false, c));
+        }
+
+        return result;
+    }
+
     public bool CanPlaceAnywhere(Block block)
     {
         for (int r = 0; r < Rows; r++)
