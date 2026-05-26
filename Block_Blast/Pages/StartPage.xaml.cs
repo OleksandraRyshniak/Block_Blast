@@ -6,25 +6,24 @@ namespace Block_Blast.Pages;
 
 public partial class StartPage : ContentPage
 {
-    // ── Сервисы ───────────────────────────────────────────────
+  
     private readonly ThemeService _themeService;
     private readonly ScoreService _scoreService;
     private readonly AccountService _accountService;
 
-    // ── UI ────────────────────────────────────────────────────
     private Label LblTitle;
-    private Label LblBest;       // "🏆 Best: 1 230"
+    private Label LblBest;       
 
     private Button BtnPlayEasy;
     private Button BtnPlayHard;
 
     private Button BtnSettings;
 
-    // ── Состояние ─────────────────────────────────────────────
+  
     private bool _isNavigating = false;
     private bool _loginChecked = false;
 
-    // ── Конструктор ───────────────────────────────────────────
+   
     public StartPage(
         ThemeService themeService,
         ScoreService scoreService,
@@ -38,7 +37,6 @@ public partial class StartPage : ContentPage
         PrepareForEntrance();
     }
 
-    // ── Построение UI ─────────────────────────────────────────
     private void BuildUI()
     {
         BackgroundColor = Color.FromArgb("#0D0D1A");
@@ -176,7 +174,7 @@ public partial class StartPage : ContentPage
         };
 
 
-    // ── Жизненный цикл ────────────────────────────────────────
+   
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -187,7 +185,6 @@ public partial class StartPage : ContentPage
         ApplyLocalization();
         RefreshBestScore();
 
-        // Проверяем логин только один раз
         if (!_loginChecked)
         {
             _loginChecked = true;
@@ -205,9 +202,7 @@ public partial class StartPage : ContentPage
         LanguageService.LanguageChanged -= ApplyLocalization;
     }
 
-    // ── Рекорд ────────────────────────────────────────────────
-
-    /// <summary>Обновляет метку лучшего результата.</summary>
+   
     private void RefreshBestScore()
     {
         var playerName = _accountService.GetCurrentName();
@@ -219,7 +214,7 @@ public partial class StartPage : ContentPage
             : $"🏆: —";
     }
 
-    // ── LoginPage (только первый запуск или из Settings) ──────
+    
     public async Task<string?> GoToLogin(bool canCancel = false)
     {
         var loginPage = new LoginPage(
@@ -232,7 +227,7 @@ public partial class StartPage : ContentPage
         return result;
     }
 
-    // ── Тема и локализация ────────────────────────────────────
+
     private void ApplyTheme()
     {
         var t = _themeService.Current;
@@ -240,16 +235,16 @@ public partial class StartPage : ContentPage
         BackgroundColor = t.BackgroundColor;
 
         LblTitle.TextColor = t.AccentColor;
-        LblBest.TextColor = t.Name == "Light"
-            ? Color.FromArgb("#B8860B")   // тёмное золото на светлом фоне
+        LblBest.TextColor = t.Name == AppResources.light
+            ? Color.FromArgb("#B8860B")   
             : Colors.Gold;
 
-        // Кнопка Easy — акцентный цвет
+        
         BtnPlayEasy.BackgroundColor = t.AccentColor;
         BtnPlayEasy.TextColor = IsLightColor(t.AccentColor)
             ? Color.FromArgb("#0A0A14") : Colors.White;
 
-        // Кнопка Hard — второй акцент (чуть темнее/теплее)
+       
         var hardColor = t.Name switch
         {
             "Light" => Color.FromArgb("#E53935"),
@@ -261,7 +256,6 @@ public partial class StartPage : ContentPage
         BtnPlayHard.TextColor = IsLightColor(hardColor)
             ? Color.FromArgb("#0A0A14") : Colors.White;
 
-        // Кнопка Settings — прозрачная с рамкой
         BtnSettings.BackgroundColor = Colors.Transparent;
         BtnSettings.TextColor = t.TextColor;
         BtnSettings.BorderColor = t.CellBorderColor;
@@ -272,8 +266,8 @@ public partial class StartPage : ContentPage
 
     private void ApplyLocalization()
     {
-        BtnPlayEasy.Text = AppResources.play + " (Easy)";
-        BtnPlayHard.Text = "🔥  " + AppResources.play + " (Hard)";
+        BtnPlayEasy.Text = AppResources.play + AppResources.easy;
+        BtnPlayHard.Text = "🔥  " + AppResources.play + AppResources.hard;
         
         BtnSettings.Text = "⚙  " + AppResources.settings;
         RefreshBestScore();
@@ -296,8 +290,8 @@ public partial class StartPage : ContentPage
     private async Task PlayEntranceAnimation()
     {
         await Task.WhenAll(
-            LblTitle.FadeTo(1, 350, Easing.CubicOut),
-            LblTitle.TranslateTo(0, 0, 350, Easing.CubicOut));
+            LblTitle.FadeToAsync(1, 350, Easing.CubicOut),
+            LblTitle.TranslateToAsync(0, 0, 350, Easing.CubicOut));
 
         await Task.Delay(60);
 
@@ -306,25 +300,25 @@ public partial class StartPage : ContentPage
         await Task.Delay(60);
 
         await Task.WhenAll(
-            BtnPlayEasy.FadeTo(1, 220, Easing.CubicOut),
-            BtnPlayEasy.TranslateTo(0, 0, 220, Easing.CubicOut),
-            BtnPlayHard.FadeTo(1, 220, Easing.CubicOut),
-            BtnPlayHard.TranslateTo(0, 0, 220, Easing.CubicOut));
+            BtnPlayEasy.FadeToAsync(1, 220, Easing.CubicOut),
+            BtnPlayEasy.TranslateToAsync(0, 0, 220, Easing.CubicOut),
+            BtnPlayHard.FadeToAsync(1, 220, Easing.CubicOut),
+            BtnPlayHard.TranslateToAsync(0, 0, 220, Easing.CubicOut));
 
         await Task.Delay(60);
 
         await Task.WhenAll(
             
-            BtnSettings.FadeTo(1, 200, Easing.CubicOut));
+            BtnSettings.FadeToAsync(1, 200, Easing.CubicOut));
     }
 
     private static async Task AnimateButtonPress(View btn)
     {
-        await btn.ScaleTo(0.93, 80, Easing.CubicIn);
-        await btn.ScaleTo(1.0, 100, Easing.CubicOut);
+        await btn.ScaleToAsync(0.93, 80, Easing.CubicIn);
+        await btn.ScaleToAsync(1.0, 100, Easing.CubicOut);
     }
 
-    // ── Кнопки ────────────────────────────────────────────────
+   
     private async void OnPlayClicked(GameMode mode)
     {
         if (_isNavigating) return;
@@ -332,7 +326,7 @@ public partial class StartPage : ContentPage
         var btn = mode == GameMode.Easy ? BtnPlayEasy : BtnPlayHard;
         await AnimateButtonPress(btn);
 
-        // Имя должно быть уже сохранено после первого запуска
+      
         var name = _accountService.GetCurrentName();
         if (name == null)
         {
@@ -354,7 +348,7 @@ public partial class StartPage : ContentPage
         catch (Exception ex)
         {
             _isNavigating = false;
-            await DisplayAlert(AppResources.error, ex.Message, "OK");
+            await DisplayAlertAsync(AppResources.error, ex.Message, "OK");
         }
     }
 

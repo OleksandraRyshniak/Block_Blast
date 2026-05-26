@@ -3,20 +3,16 @@ using Block_Blast.Services;
 
 namespace Block_Blast.Pages;
 
-/// <summary>
-/// Экран ввода имени.
-/// Показывается ТОЛЬКО при первом запуске приложения (имя ещё не сохранено).
-/// canCancel = true только если уже есть аккаунт (выход из Settings).
-/// </summary>
+
 public partial class LoginPage : ContentPage
 {
-    // ── Сервисы ───────────────────────────────────────────────
+    
     private readonly AccountService _accountService;
     private readonly ScoreService _scoreService;
     private readonly ThemeService _themeService;
     private readonly bool _canCancel;
 
-    // ── UI ────────────────────────────────────────────────────
+    
     private Label LblTitle;
     private Label LblSubtitle;
     private Entry EntryName;
@@ -26,11 +22,11 @@ public partial class LoginPage : ContentPage
    
     private Grid _rootGrid;
 
-    // ── Результат ─────────────────────────────────────────────
+    
     public string? ResultName { get; private set; }
     private readonly TaskCompletionSource<string?> _tcs = new();
 
-    // ── Конструктор ───────────────────────────────────────────
+    
     public LoginPage(
         AccountService accountService,
         ScoreService scoreService,
@@ -47,17 +43,10 @@ public partial class LoginPage : ContentPage
         ApplyTheme();
         PrepareEntrance();
     }
-
-    // ── Построение UI ─────────────────────────────────────────
-
-
-    // Добавь в поля класса:
+    
     private Border _card;
     private Label LblOneTimeHint;
 
-
-
-    // ── Lifecycle ─────────────────────────────────────────────
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -71,7 +60,6 @@ public partial class LoginPage : ContentPage
         return true;
     }
 
-    // ── Логика ────────────────────────────────────────────────
     private void OnTextChanged(object? sender, TextChangedEventArgs e)
     {
         LblHint.IsVisible = false;
@@ -102,8 +90,8 @@ public partial class LoginPage : ContentPage
         if (cleaned.Length > 16)
             cleaned = cleaned[..16];
 
-        await BtnConfirm.ScaleTo(0.93, 80, Easing.CubicIn);
-        await BtnConfirm.ScaleTo(1.0, 100, Easing.CubicOut);
+        await BtnConfirm.ScaleToAsync(0.93, 80, Easing.CubicIn);
+        await BtnConfirm.ScaleToAsync(1.0, 100, Easing.CubicOut);
 
         _accountService.SetCurrentName(cleaned);
         ResultName = cleaned;
@@ -127,15 +115,15 @@ public partial class LoginPage : ContentPage
 
         for (int i = 0; i < 3; i++)
         {
-            await EntryName.TranslateTo(-8, 0, 50);
-            await EntryName.TranslateTo(8, 0, 55);
+            await EntryName.TranslateToAsync(-8, 0, 50);
+            await EntryName.TranslateToAsync(8, 0, 55);
         }
-        await EntryName.TranslateTo(0, 0, 50);
+        await EntryName.TranslateToAsync(0, 0, 50);
     }
 
     public Task<string?> WaitForResult() => _tcs.Task;
 
-    // ── Анимации ──────────────────────────────────────────────
+  
     private void PrepareEntrance()
     {
         LblTitle.Opacity = 0;
@@ -146,22 +134,22 @@ public partial class LoginPage : ContentPage
     private async Task PlayEntrance()
     {
         await Task.WhenAll(
-            LblTitle.FadeTo(1, 400, Easing.CubicOut),
-            LblTitle.TranslateTo(0, 0, 400, Easing.CubicOut),
-            LblTitle.ScaleTo(1.0, 400, Easing.CubicOut));
+            LblTitle.FadeToAsync(1, 400, Easing.CubicOut),
+            LblTitle.TranslateToAsync(0, 0, 400, Easing.CubicOut),
+            LblTitle.ScaleToAsync(1.0, 400, Easing.CubicOut));
     }
 
-    // ── Утилиты ───────────────────────────────────────────────
-    private static BoxView Deco(string hex, double opacity, double w, double h,
-        LayoutOptions hOpt, LayoutOptions vOpt) => new BoxView
-        {
-            Color = Color.FromArgb(hex),
-            Opacity = opacity,
-            WidthRequest = w,
-            HeightRequest = h,
-            HorizontalOptions = hOpt,
-            VerticalOptions = vOpt
-        };
+   
+    //private static BoxView Deco(string hex, double opacity, double w, double h,
+    //    LayoutOptions hOpt, LayoutOptions vOpt) => new BoxView
+    //    {
+    //        Color = Color.FromArgb(hex),
+    //        Opacity = opacity,
+    //        WidthRequest = w,
+    //        HeightRequest = h,
+    //        HorizontalOptions = hOpt,
+    //        VerticalOptions = vOpt
+    //    };
     private void BuildUI()
     {
         Shell.SetNavBarIsVisible(this, false);
@@ -183,7 +171,7 @@ public partial class LoginPage : ContentPage
 
         LblSubtitle = new Label
         {
-            Text = "ENTER YOUR NAME",
+            Text = AppResources.enter_your_name,
             FontFamily = "PressStart2P",
             FontSize = 9,
             HorizontalOptions = LayoutOptions.Center,
@@ -192,7 +180,7 @@ public partial class LoginPage : ContentPage
 
         LblOneTimeHint = new Label
         {
-            Text = "You only need to do this once.",
+            Text = AppResources.you_once,
             FontFamily = "PressStart2P",
             FontSize = 12,
             HorizontalOptions = LayoutOptions.Center,
@@ -202,7 +190,7 @@ public partial class LoginPage : ContentPage
 
         EntryName = new Entry
         {
-            Placeholder = "Your name...",
+            Placeholder = AppResources.your_name,
             MaxLength = 16,
             FontFamily = "PressStart2P",
             FontSize = 14,
@@ -222,7 +210,7 @@ public partial class LoginPage : ContentPage
 
         BtnConfirm = new Button
         {
-            Text = "▶  START",
+            Text = AppResources.start,
             FontFamily = "PressStart2P",
             FontSize = 11,
             CornerRadius = 0,
@@ -276,22 +264,22 @@ public partial class LoginPage : ContentPage
     private void ApplyTheme()
     {
         var t = _themeService.Current;
-        bool isLight = t.Name == "Light";
+        bool isLight = t.Name == AppResources.light;
+        bool isColorful = t.Name == AppResources.colorful;
 
-        // Фон страницы
         BackgroundColor = t.BackgroundColor;
 
-        // Декор-боксы — скрываем на светлой теме
         foreach (var child in _rootGrid.Children)
         {
             if (child is BoxView deco)
-                deco.Opacity = isLight ? 0.0 : 0.10;
+                deco.Opacity = isLight ? 0.0 : isColorful ? 0.18 : 0.10;
         }
 
-        // Заголовок BLOCK BLAST
-        var titleColor = isLight
+        Color titleColor = isLight
             ? Color.FromArgb("#005588")
-            : Color.FromArgb("#00F5FF");
+            : isColorful
+                ? Color.FromArgb("#FF3CAC")  
+                : Color.FromArgb("#00F5FF");
 
         LblTitle.TextColor = titleColor;
         LblTitle.Shadow = new Shadow
@@ -299,55 +287,69 @@ public partial class LoginPage : ContentPage
             Brush = new SolidColorBrush(titleColor),
             Offset = new Point(4, 4),
             Radius = 0,
-            Opacity = isLight ? 0.25f : 0.60f
+            Opacity = isLight ? 0.25f : isColorful ? 0.75f : 0.60f
         };
 
-        // "ENTER YOUR NAME"
         LblSubtitle.TextColor = isLight
             ? Color.FromArgb("#1A1A2E")
-            : Color.FromArgb("#FFE500");
+            : isColorful
+                ? Color.FromArgb("#FFE500")   
+                : Color.FromArgb("#FFE500");
 
-        // "You only need to do this once."
         LblOneTimeHint.TextColor = isLight
             ? Color.FromArgb("#444466")
-            : Color.FromArgb("#888899");
+            : isColorful
+                ? Color.FromArgb("#AAAACC")
+                : Color.FromArgb("#888899");
 
-        // Поле ввода
         EntryName.BackgroundColor = isLight
             ? Color.FromArgb("#E0E0F0")
-            : Color.FromArgb("#0D0D1A");
+            : isColorful
+                ? Color.FromArgb("#1A0A2E")   
+                : Color.FromArgb("#0D0D1A");
+
         EntryName.TextColor = isLight
             ? Color.FromArgb("#0D0D1A")
             : Colors.White;
+
         EntryName.PlaceholderColor = isLight
             ? Color.FromArgb("#9999BB")
-            : Color.FromArgb("#444466");
+            : isColorful
+                ? Color.FromArgb("#7755AA")
+                : Color.FromArgb("#444466");
 
-        // Кнопка START
-        var accentColor = isLight
+        Color accentColor = isLight
             ? Color.FromArgb("#0077BB")
-            : Color.FromArgb("#00F5FF");
+            : isColorful
+                ? Color.FromArgb("#39FF14")   
+                : Color.FromArgb("#00F5FF");
+
         BtnConfirm.BackgroundColor = accentColor;
         BtnConfirm.TextColor = isLight
             ? Colors.White
             : Color.FromArgb("#0D0D1A");
 
-        // Кнопка BACK
-        var cancelColor = isLight
+        Color cancelColor = isLight
             ? Color.FromArgb("#CC0066")
-            : Color.FromArgb("#FF3CAC");
+            : isColorful
+                ? Color.FromArgb("#FF3CAC")
+                : Color.FromArgb("#FF3CAC");
+
         BtnCancel.TextColor = cancelColor;
         BtnCancel.BorderColor = cancelColor;
 
-        // Карточка
         _card.BackgroundColor = isLight
             ? Color.FromArgb("#E8E8F8")
-            : Color.FromArgb("#1A1A2E");
+            : isColorful
+                ? Color.FromArgb("#150A2A")   
+                : Color.FromArgb("#1A1A2E");
+
         _card.Stroke = new SolidColorBrush(isLight
             ? Color.FromArgb("#0077BB")
-            : Color.FromArgb("#00F5FF"));
+            : isColorful
+                ? Color.FromArgb("#FF3CAC")   
+                : Color.FromArgb("#00F5FF"));
     }
-
     private static bool IsLightColor(Color c) =>
         (c.Red * 0.299 + c.Green * 0.587 + c.Blue * 0.114) > 0.6f;
 

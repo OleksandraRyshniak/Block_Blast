@@ -67,7 +67,7 @@ public partial class SettingsPage : ContentPage
             Margin = new Thickness(0, 0, 0, 32)
         };
 
-        LblTheme = MakePixelLabel(AppResources.theme, 15, "#FFE500");
+        LblTheme = MakePixelLabel(AppResources.theme, 13, "#FFE500");
         LblTheme.Margin = new Thickness(0, 0, 0, 10);
 
         ThemeLayout = new FlexLayout
@@ -80,7 +80,7 @@ public partial class SettingsPage : ContentPage
 
         var themeCard = MakeCard("#FFE500", ThemeLayout, new Thickness(0, 0, 0, 28));
 
-        LblLanguage = MakePixelLabel(AppResources.language, 15, "#FFE500");
+        LblLanguage = MakePixelLabel(AppResources.language, 13, "#FFE500");
         LblLanguage.Margin = new Thickness(0, 0, 0, 10);
 
         LangLayout = new FlexLayout
@@ -93,16 +93,16 @@ public partial class SettingsPage : ContentPage
 
         var langCard = MakeCard("#39FF14", LangLayout, new Thickness(0, 0, 0, 28));
 
-        LblAccount = MakePixelLabel(AppResources.account, 15, "#FF3CAC");
+        LblAccount = MakePixelLabel(AppResources.account, 13, "#FF3CAC");
         LblAccount.Margin = new Thickness(0, 0, 0, 10);
 
         BtnLogout = new Button
         {
             FontFamily = "PressStart2P",
             FontSize = 15,
-            TextColor = Color.FromArgb("#FF3CAC"),
+            TextColor = Color.FromArgb("#FFFFFF"),
             BackgroundColor = Colors.Transparent,
-            BorderColor = Color.FromArgb("#FF3CAC"),
+            BorderColor = Color.FromArgb("#FFFFFF"),
             BorderWidth = 2,
             CornerRadius = 0,
             HeightRequest = 44,
@@ -157,7 +157,7 @@ public partial class SettingsPage : ContentPage
         LanguageService.LanguageChanged += ApplyLocalization;
         _isNavigating = false;
         ApplyTheme();
-        ApplyLocalization();
+        ApplyLocalization();       
         BuildThemeButtons();
         BuildLanguageButtons();
         await PlayEntranceAnimation();
@@ -175,13 +175,10 @@ public partial class SettingsPage : ContentPage
     {
         LblTitle.Text = AppResources.settings;
         LblTheme.Text = AppResources.theme;
+        LblAccount.Text = AppResources.account;
         LblLanguage.Text = AppResources.language;
         BtnBack.Text = AppResources.back;
-
-        var name = _accountService.GetCurrentName();
-        BtnLogout.Text = name != null
-            ? $"{AppResources.exit}: {name.ToUpper()}"
-            : AppResources.logout;
+        UpdateAccountButton();
     }
 
     private void PrepareForEntrance()
@@ -191,6 +188,26 @@ public partial class SettingsPage : ContentPage
         LblLanguage.Opacity = 0; LangLayout.Opacity = 0;
         LblAccount.Opacity = 0; BtnLogout.Opacity = 0;
         BtnBack.Opacity = 0; BtnBack.TranslationY = 20;
+    }
+
+    private void UpdateAccountButton()
+    {
+        var name = _accountService.GetCurrentName();
+
+        if (name != null)
+        {
+            
+            BtnLogout.Text = $"{AppResources.exit}: {name.ToUpper()}";
+            BtnLogout.TextColor = Color.FromArgb("#FFFFFF");
+            BtnLogout.BorderColor = Color.FromArgb("#FF3CAC");
+        }
+        else
+        {
+            
+            BtnLogout.Text = AppResources.login;
+            BtnLogout.TextColor = Color.FromArgb("#FFFFFF");
+            BtnLogout.BorderColor = Color.FromArgb("#FF3CAC");
+        }
     }
 
     private async Task PlayEntranceAnimation()
@@ -291,9 +308,20 @@ public partial class SettingsPage : ContentPage
         }
     }
 
-    // ── Выход из аккаунта ─────────────────────────────────────
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
+        var name = _accountService.GetCurrentName();
+
+        if (name == null)
+        {
+            
+            await AnimateButtonPress(BtnLogout);
+            await Navigation.PopAsync();
+            await _startPage.GoToLogin(canCancel: true);
+            return;
+        }
+
+       
         bool confirm = await DisplayAlertAsync(
             AppResources.account,
             AppResources.eaasp,
@@ -304,7 +332,6 @@ public partial class SettingsPage : ContentPage
         await AnimateButtonPress(BtnLogout);
         _accountService.Logout();
 
-     
         await Navigation.PopAsync();
         await _startPage.GoToLogin(canCancel: true);
     }

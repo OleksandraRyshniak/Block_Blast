@@ -141,9 +141,6 @@
   <data name="name" xml:space="preserve">
     <value>Name</value>
   </data>
-  <data name="rank" xml:space="preserve">
-    <value>RANK</value>
-  </data>
   <data name="no_scores_yet" xml:space="preserve">
     <value>No scores yet</value>
   </data>
@@ -221,5 +218,14 @@
   </data>
   <data name="no" xml:space="preserve">
     <value>no</value>
+  </data>
+  <data name="login" xml:space="preserve">
+    <value>LOGIN</value>
+  </data>
+  <data name="you_once" xml:space="preserve">
+    <value>You only need to do this once.</value>
+  </data>
+  <data name="your_name" xml:space="preserve">
+    <value>Your name ...</value>
   </data>
 </root>

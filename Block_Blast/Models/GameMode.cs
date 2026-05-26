@@ -2,6 +2,6 @@
 
 public enum GameMode
 {
-    Easy,   // пустое поле
-    Hard    // ~12 случайных занятых клеток
+    Easy,   
+    Hard    
 }

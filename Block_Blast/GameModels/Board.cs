@@ -4,29 +4,23 @@ namespace Block_Blast.GameModels;
 
 public class Board
 {
-    // ── Константы ─────────────────────────────────────────────
+    
     public const int Rows = 8;
     public const int Cols = 8;
 
-    // ── Свойства ──────────────────────────────────────────────
+
     public Cell[,] Grid { get; private set; }
 
-    /// <summary>
-    /// Событие после очистки линий.
-    /// int  = кол-во линий
-    /// List = список (isRow, index) — какие именно линии
-    /// bool = isBoardClear — поле полностью пустое?
-    /// </summary>
+
     public event Action<int, List<(bool isRow, int index)>, bool>? LinesCleared;
 
-    // ── Конструктор ───────────────────────────────────────────
+    
     public Board()
     {
         Grid = new Cell[Rows, Cols];
         InitGrid();
     }
 
-    // ── Инициализация ─────────────────────────────────────────
     private void InitGrid()
     {
         for (int r = 0; r < Rows; r++)
@@ -34,7 +28,6 @@ public class Board
                 Grid[r, c] = new Cell(r, c);
     }
 
-    // ── Основные методы ───────────────────────────────────────
 
     public bool CanPlace(Block block, int startRow, int startCol)
     {
@@ -65,9 +58,7 @@ public class Board
         }
     }
 
-    // ── Board clear ───────────────────────────────────────────
 
-    /// <summary>True если на поле нет ни одной занятой клетки.</summary>
     public bool IsBoardEmpty()
     {
         for (int r = 0; r < Rows; r++)
@@ -76,7 +67,7 @@ public class Board
         return true;
     }
 
-    // ── Сложный режим ─────────────────────────────────────────
+
 
     public void FillRandom(int count = 12)
     {
@@ -103,7 +94,6 @@ public class Board
         }
     }
 
-    // ── Превью ────────────────────────────────────────────────
 
     public List<(int row, int col)> GetPreviewCells(Block block, int startRow, int startCol)
     {
@@ -119,20 +109,15 @@ public class Board
         return cells;
     }
 
-    /// <summary>
-    /// Симулирует размещение блока и возвращает список линий которые будут очищены.
-    /// Не меняет реальное состояние поля.
-    /// Возвращает пустой список если размещение невозможно или линий нет.
-    /// </summary>
     public List<(bool isRow, int index)> GetWouldClearLines(Block block, int startRow, int startCol)
     {
         var result = new List<(bool isRow, int index)>();
 
-        // Проверяем что можно поставить
+        
         var placeCells = GetPreviewCells(block, startRow, startCol);
         if (placeCells.Count == 0) return result;
 
-        // Симулируем: набор занятых клеток = текущие + блок
+        
         var occupied = new HashSet<(int r, int c)>();
         for (int r = 0; r < Rows; r++)
             for (int c = 0; c < Cols; c++)
@@ -141,7 +126,7 @@ public class Board
         foreach (var (r, c) in placeCells)
             occupied.Add((r, c));
 
-        // Проверяем строки
+        
         for (int r = 0; r < Rows; r++)
         {
             bool full = true;
@@ -150,7 +135,7 @@ public class Board
             if (full) result.Add((true, r));
         }
 
-        // Проверяем столбцы
+       
         for (int c = 0; c < Cols; c++)
         {
             bool full = true;
@@ -170,7 +155,7 @@ public class Board
         return false;
     }
 
-    // ── Конец игры ────────────────────────────────────────────
+ 
 
     public bool IsGameOver(List<Block> nextBlocks)
     {
@@ -179,7 +164,7 @@ public class Board
         return true;
     }
 
-    // ── Очистка линий ─────────────────────────────────────────
+
 
     private (int count, List<(bool isRow, int index)> lines) ClearFullLines()
     {

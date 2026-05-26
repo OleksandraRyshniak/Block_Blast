@@ -2,16 +2,16 @@
 using System.Collections.Generic;
 using System.Text;
 
+
 namespace Block_Blast.Models
 {
     public class Language
     {
-        // ── Свойства ──────────────────────────────────────────
-        public string Code { get; private set; }   // "et", "ru", "en"
-        public string Name { get; private set; }   // "Eesti", "Русский", "English"
-        public string Flag { get; private set; }   // эмодзи флага
+       
+        public string Code { get; private set; } 
+        public string Name { get; private set; }  
+        public string Flag { get; private set; }   
 
-        // ── Конструктор ───────────────────────────────────────
         public Language(string code, string name, string flag)
         {
             Code = code;
@@ -19,10 +19,11 @@ namespace Block_Blast.Models
             Flag = flag;
         }
 
-        // ── Готовые языки ─────────────────────────────────────
+   
         public static Language Estonian => new Language("et", "Eesti", "🇪🇪");
        
         public static Language English => new Language("en", "English", "🇬🇧");
+        public static Language Russian => new Language("ru", "Русский", "RU");
 
         public static List<Language> All => new List<Language>
         {

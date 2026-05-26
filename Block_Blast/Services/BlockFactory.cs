@@ -59,6 +59,8 @@ namespace Block_Blast.Services
                 7 => Block.TShape(color),
                 8 => Block.Single(color),
                 9 => Block.LineH3(color),
+                10=>Block.Square3(color),
+                11=>Block.LineV5(color),
                 _ => Block.LineV3(color)
             };
         }

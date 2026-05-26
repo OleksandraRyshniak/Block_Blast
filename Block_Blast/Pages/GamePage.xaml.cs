@@ -202,14 +202,24 @@ public partial class GamePage : ContentPage
     private void ApplyTheme()
     {
         var t = _themeService.Current;
+        bool isLight = t.Name == AppResources.light;
+        bool isColorful = t.Name == AppResources.colorful;
+
         BackgroundColor = t.BackgroundColor;
-        LblScore.TextColor = t.AccentColor;
-        LblBest.TextColor = t.Name == "Light"
-            ? Color.FromArgb("#B8860B") : Colors.Gold;
+
         LblScoreTitle.TextColor = t.TextColor;
         LblBestTitle.TextColor = t.TextColor;
-    }
 
+        
+        LblScore.TextColor = t.AccentColor;
+
+     
+        LblBest.TextColor = isLight
+            ? Color.FromArgb("#B8860B") 
+            : isColorful
+                ? Color.FromArgb("#FFE500")  
+                : Colors.Gold;               
+    }
     protected override void OnAppearing()
     {
         base.OnAppearing();
@@ -287,7 +297,7 @@ public partial class GamePage : ContentPage
         ClearPreview();
         _previewCells = cells;
 
-        // Полупрозрачный цвет блока
+        
         var previewColor = Color.FromRgba(
             blockColor.Red, blockColor.Green, blockColor.Blue, 0.40f);
 

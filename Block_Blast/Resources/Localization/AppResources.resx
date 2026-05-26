@@ -141,9 +141,6 @@
   <data name="name" xml:space="preserve">
     <value>Nimi</value>
   </data>
-  <data name="rank" xml:space="preserve">
-    <value>KOHT</value>
-  </data>
   <data name="no_scores_yet" xml:space="preserve">
     <value>Tulemusi pole</value>
   </data>
@@ -175,51 +172,60 @@
     <value>Menüü</value>
   </data>
   <data name="easy" xml:space="preserve">
-    <value>-</value>
+    <value>"LIHTNE"</value>
   </data>
   <data name="hard" xml:space="preserve">
-    <value>-</value>
+    <value>&#x8;"RASKE"</value>
   </data>
   <data name="account" xml:space="preserve">
-    <value>-</value>
+    <value>KONTO</value>
   </data>
   <data name="logout" xml:space="preserve">
-    <value>-</value>
+    <value>VÄLJUMINE</value>
   </data>
   <data name="exit" xml:space="preserve">
-    <value>-</value>
+    <value>VÄLJU</value>
   </data>
   <data name="light" xml:space="preserve">
-    <value>-</value>
+    <value>valgus</value>
   </data>
   <data name="dark" xml:space="preserve">
-    <value>-</value>
+    <value>Tume</value>
   </data>
   <data name="colorful" xml:space="preserve">
-    <value>--</value>
+    <value>Värvikas</value>
   </data>
   <data name="start" xml:space="preserve">
-    <value>-</value>
+    <value>ALUSTA</value>
   </data>
   <data name="eaasp" xml:space="preserve">
-    <value>--</value>
+    <value>Kontolt väljuda ja mängijat vahetada?</value>
   </data>
   <data name="combo1" xml:space="preserve">
-    <value>---</value>
+    <value>COMBO</value>
   </data>
   <data name="best_combo" xml:space="preserve">
-    <value>---</value>
+    <value>Parim combo</value>
   </data>
   <data name="lines" xml:space="preserve">
-    <value>--</value>
+    <value>Read</value>
   </data>
   <data name="board_clear" xml:space="preserve">
-    <value>----</value>
+    <value>Lauake on puhas!</value>
   </data>
   <data name="yes" xml:space="preserve">
     <value>jah</value>
   </data>
   <data name="no" xml:space="preserve">
     <value>ei</value>
+  </data>
+  <data name="login" xml:space="preserve">
+    <value>SISSE</value>
+  </data>
+  <data name="you_once" xml:space="preserve">
+    <value>Seda tuleb teha vaid üks kord.</value>
+  </data>
+  <data name="your_name" xml:space="preserve">
+    <value>Sinu nimi ...</value>
   </data>
 </root>

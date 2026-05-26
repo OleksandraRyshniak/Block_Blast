@@ -6,7 +6,6 @@ namespace Block_Blast.Models
 {
     public class Theme
     {
-        // ── Свойства ──────────────────────────────────────────
         public string Name { get; private set; }
         public Color BackgroundColor { get; private set; }
         public Color TextColor { get; private set; }
@@ -15,7 +14,7 @@ namespace Block_Blast.Models
         public Color CellBorderColor { get; private set; }
         public string FontFamily { get; private set; }
 
-        // ── Конструктор ───────────────────────────────────────
+    
         public Theme(string name, Color backgroundColor, Color textColor,
                      Color accentColor, Color cellEmptyColor, Color cellBorderColor,
                      string fontFamily = "OpenSansRegular")
@@ -29,12 +28,11 @@ namespace Block_Blast.Models
             FontFamily = fontFamily;
         }
 
-        // ── Применяет тему к странице ─────────────────────────
+
         public void Apply(ContentPage page)
         {
             page.BackgroundColor = BackgroundColor;
 
-            // Применяем ко всем Label на странице
             ApplyToChildren(page.Content);
         }
 

@@ -5,34 +5,28 @@ namespace Block_Blast.Models;
 
 public class Game
 {
-    // ── Поля ──────────────────────────────────────────────────
+    
     private readonly BlockFactory _factory;
     private readonly GameMode _mode;
     private bool _lineClearedThisTurn;
 
-    // ── Свойства ──────────────────────────────────────────────
+    
     public Board Board { get; private set; }
     public Player Player { get; private set; }
     public List<Block> NextBlocks { get; private set; }
     public bool IsRunning { get; private set; }
     public bool IsOver { get; private set; }
 
-    // ── События ───────────────────────────────────────────────
+   
     public event Action? GameStarted;
     public event Action? GameOver;
     public event Action<int>? ScoreChanged;
 
-    /// <summary>
-    /// linesCount  — сколько линий очищено
-    /// lines       — список (isRow, index)
-    /// combo       — текущий комбо счётчик
-    /// isBoardClear — поле полностью пустое?
-    /// </summary>
+
     public event Action<int, List<(bool isRow, int index)>, int, bool>? LinesCleared;
 
     public event Action? BoardUpdated;
 
-    // ── Конструктор ───────────────────────────────────────────
     public Game(Player player, GameMode mode = GameMode.Easy)
     {
         Player = player;
@@ -44,7 +38,6 @@ public class Game
         Board.LinesCleared += OnLinesCleared;
     }
 
-    // ── Управление ────────────────────────────────────────────
 
     public void Start()
     {
@@ -63,7 +56,6 @@ public class Game
 
     public void Stop() => IsRunning = false;
 
-    // ── Игровая логика ────────────────────────────────────────
 
     public bool TryPlaceBlock(int blockIndex, int row, int col)
     {
@@ -73,7 +65,7 @@ public class Game
         var block = NextBlocks[blockIndex];
         if (!Board.CanPlace(block, row, col)) return false;
 
-        // 1 очко за каждую клетку блока
+        
         int cellsPlaced = block.GetCells().Count;
         Player.AddPlacementScore(cellsPlaced);
 
@@ -81,7 +73,7 @@ public class Game
 
         Board.PlaceBlock(block, row, col);
 
-        // Если линий не было — комбо сбрасывается
+        
         if (!_lineClearedThisTurn)
             Player.ResetCombo();
 
@@ -102,7 +94,7 @@ public class Game
         return true;
     }
 
-    // ── Обработчик Board.LinesCleared ─────────────────────────
+    
     private void OnLinesCleared(int count, List<(bool isRow, int index)> lines, bool isBoardClear)
     {
         _lineClearedThisTurn = true;

@@ -118,102 +118,114 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="player" xml:space="preserve">
-    <value>-</value>
+    <value>Игрок</value>
   </data>
   <data name="scores" xml:space="preserve">
-    <value>-</value>
+    <value>Очки</value>
   </data>
   <data name="score" xml:space="preserve">
-    <value>-</value>
+    <value>СЧЁТ</value>
   </data>
   <data name="settings" xml:space="preserve">
-    <value>-</value>
+    <value>НАСТРОЙКИ</value>
   </data>
   <data name="theme" xml:space="preserve">
-    <value>-</value>
+    <value>ТЕМА</value>
   </data>
   <data name="language" xml:space="preserve">
-    <value>-</value>
+    <value>ЯЗЫК</value>
   </data>
   <data name="back" xml:space="preserve">
-    <value>-</value>
+    <value>◀ НАЗАД</value>
   </data>
   <data name="name" xml:space="preserve">
-    <value>-</value>
-  </data>
-  <data name="rank" xml:space="preserve">
-    <value>-</value>
+    <value>Имя</value>
   </data>
   <data name="no_scores_yet" xml:space="preserve">
-    <value>-</value>
+    <value>Пока нет результатов</value>
   </data>
   <data name="enter_your_name" xml:space="preserve">
-    <value>-</value>
+    <value>ВВЕДИТЕ СВОЕ ИМЯ </value>
   </data>
   <data name="play" xml:space="preserve">
-    <value>-</value>
+    <value>ИГРАТЬ</value>
   </data>
   <data name="no_name" xml:space="preserve">
-    <value>-</value>
+    <value>НЕТ ИМЕНИ</value>
   </data>
   <data name="name_start" xml:space="preserve">
-    <value>-</value>
+    <value>Введите имя игрока, чтобы начать.</value>
   </data>
   <data name="error" xml:space="preserve">
-    <value>-</value>
+    <value>ОШИБКА</value>
   </data>
   <data name="gameover" xml:space="preserve">
-    <value>-</value>
+    <value>Конец игры</value>
   </data>
   <data name="yoursroce" xml:space="preserve">
-    <value>-</value>
+    <value>Твой счет</value>
   </data>
   <data name="playagain" xml:space="preserve">
-    <value>-</value>
+    <value>Заново</value>
   </data>
   <data name="menu" xml:space="preserve">
-    <value>-</value>
+    <value>МЕНЮ</value>
   </data>
   <data name="easy" xml:space="preserve">
-    <value>-</value>
+    <value>"ЛЁГКИЙ"</value>
   </data>
   <data name="hard" xml:space="preserve">
-    <value>-</value>
+    <value>"СЛОЖНЫЙ"</value>
   </data>
   <data name="account" xml:space="preserve">
-    <value>-</value>
+    <value>АККАУНТ</value>
   </data>
   <data name="logout" xml:space="preserve">
-    <value>-</value>
+    <value>ВЫЙТИ</value>
   </data>
   <data name="exit" xml:space="preserve">
-    <value>-</value>
+    <value>ВЫХОД</value>
   </data>
   <data name="light" xml:space="preserve">
-    <value>-</value>
+    <value>Светлая</value>
   </data>
   <data name="dark" xml:space="preserve">
-    <value>-</value>
+    <value>Тёмная</value>
   </data>
   <data name="colorful" xml:space="preserve">
-    <value>-</value>
+    <value>Цветная</value>
   </data>
   <data name="start" xml:space="preserve">
-    <value>-</value>
+    <value>СТАРТ</value>
   </data>
   <data name="eaasp" xml:space="preserve">
-    <value>-</value>
+    <value>Выйти из аккаунта и сменить игрока?</value>
   </data>
   <data name="combo1" xml:space="preserve">
-    <value>--</value>
+    <value>КОМБО</value>
   </data>
   <data name="best_combo" xml:space="preserve">
-    <value>---</value>
+    <value>&#x8;Лучшее комбо</value>
   </data>
   <data name="lines" xml:space="preserve">
-    <value>--</value>
+    <value>Строки</value>
   </data>
   <data name="board_clear" xml:space="preserve">
-    <value>-</value>
+    <value>Доска чиста!</value>
+  </data>
+  <data name="yes" xml:space="preserve">
+    <value>да</value>
+  </data>
+  <data name="no" xml:space="preserve">
+    <value>нет</value>
+  </data>
+  <data name="login" xml:space="preserve">
+    <value>ВХОД</value>
+  </data>
+  <data name="you_once" xml:space="preserve">
+    <value>Это нужно сделать всего один раз.</value>
+  </data>
+  <data name="your_name" xml:space="preserve">
+    <value>Твое имя ...</value>
   </data>
 </root>
