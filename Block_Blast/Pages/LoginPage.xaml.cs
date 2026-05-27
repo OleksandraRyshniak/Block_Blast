@@ -18,7 +18,7 @@ public partial class LoginPage : ContentPage
     private Entry EntryName;
     private Label LblHint;
     private Button BtnConfirm;
-    private Button BtnCancel;
+ 
    
     private Grid _rootGrid;
 
@@ -139,17 +139,7 @@ public partial class LoginPage : ContentPage
             LblTitle.ScaleToAsync(1.0, 400, Easing.CubicOut));
     }
 
-   
-    //private static BoxView Deco(string hex, double opacity, double w, double h,
-    //    LayoutOptions hOpt, LayoutOptions vOpt) => new BoxView
-    //    {
-    //        Color = Color.FromArgb(hex),
-    //        Opacity = opacity,
-    //        WidthRequest = w,
-    //        HeightRequest = h,
-    //        HorizontalOptions = hOpt,
-    //        VerticalOptions = vOpt
-    //    };
+
     private void BuildUI()
     {
         Shell.SetNavBarIsVisible(this, false);
@@ -219,18 +209,6 @@ public partial class LoginPage : ContentPage
         };
         BtnConfirm.Clicked += (s, e) => OnConfirm();
 
-        BtnCancel = new Button
-        {
-            Text = AppResources.back,
-            FontFamily = "PressStart2P",
-            FontSize = 9,
-            CornerRadius = 0,
-            HeightRequest = 44,
-            BackgroundColor = Colors.Transparent,
-            BorderWidth = 2,
-            IsVisible = _canCancel
-        };
-        BtnCancel.Clicked += (s, e) => OnCancel();
 
         _card = new Border
         {
@@ -240,7 +218,8 @@ public partial class LoginPage : ContentPage
             Content = new VerticalStackLayout
             {
                 Spacing = 14,
-                Children = { LblSubtitle, LblOneTimeHint, EntryName, LblHint, BtnConfirm, BtnCancel }
+                Children = { LblSubtitle, LblOneTimeHint, EntryName, LblHint, BtnConfirm, //BtnCancel
+                }
             }
         };
 
@@ -335,8 +314,6 @@ public partial class LoginPage : ContentPage
                 ? Color.FromArgb("#FF3CAC")
                 : Color.FromArgb("#FF3CAC");
 
-        BtnCancel.TextColor = cancelColor;
-        BtnCancel.BorderColor = cancelColor;
 
         _card.BackgroundColor = isLight
             ? Color.FromArgb("#E8E8F8")
@@ -350,8 +327,7 @@ public partial class LoginPage : ContentPage
                 ? Color.FromArgb("#FF3CAC")   
                 : Color.FromArgb("#00F5FF"));
     }
-    private static bool IsLightColor(Color c) =>
-        (c.Red * 0.299 + c.Green * 0.587 + c.Blue * 0.114) > 0.6f;
+  
 
     private static BoxView MakeDecoBox(string hex, double opacity,
         double w, double h,

@@ -62,7 +62,7 @@ public partial class GamePage : ContentPage
         {
             FontFamily = "PressStart2P",
             FontSize = 20,
-            TextColor = Color.FromArgb("#888899"),
+            TextColor = Colors.White,
             HorizontalOptions = LayoutOptions.Center,
             CharacterSpacing = 2
         };
@@ -207,7 +207,7 @@ public partial class GamePage : ContentPage
 
         BackgroundColor = t.BackgroundColor;
 
-        LblScoreTitle.TextColor = t.TextColor;
+        LblScoreTitle.TextColor = Colors.White;
         LblBestTitle.TextColor = t.TextColor;
 
         
@@ -885,7 +885,7 @@ public partial class GamePage : ContentPage
         {
             _scoreService.Save(_game.Player);
 
-            // Детальная статистика в сообщении
+            
             string stats =
                 $"{AppResources.score}: {_game.Player.Score:N0}\n" +
                 $"{AppResources.lines}: {_game.Player.TotalLinesCleared}\n" +

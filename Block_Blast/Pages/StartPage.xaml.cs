@@ -77,7 +77,7 @@ public partial class StartPage : ContentPage
         LblBest = new Label
         {
             FontFamily = "PressStart2P",
-            FontSize = 9,
+            FontSize = 15,
             TextColor = Color.FromArgb("#FFE500"),
             HorizontalOptions = LayoutOptions.Center,
             CharacterSpacing = 2,
@@ -266,8 +266,8 @@ public partial class StartPage : ContentPage
 
     private void ApplyLocalization()
     {
-        BtnPlayEasy.Text = AppResources.play + AppResources.easy;
-        BtnPlayHard.Text = "🔥  " + AppResources.play + AppResources.hard;
+        BtnPlayEasy.Text = AppResources.play + " "+AppResources.easy;
+        BtnPlayHard.Text = "🔥  " + AppResources.play + " " + AppResources.hard;
         
         BtnSettings.Text = "⚙  " + AppResources.settings;
         RefreshBestScore();
@@ -295,7 +295,7 @@ public partial class StartPage : ContentPage
 
         await Task.Delay(60);
 
-        await LblBest.FadeTo(1, 250, Easing.CubicOut);
+        await LblBest.FadeToAsync(1, 250, Easing.CubicOut);
 
         await Task.Delay(60);
 
