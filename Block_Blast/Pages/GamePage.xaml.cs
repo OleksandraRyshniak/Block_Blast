@@ -40,11 +40,11 @@ public partial class GamePage : ContentPage
     private List<(int row, int col)> _hintCells = new();
     private int _hintIndex = -1;
 
-    // --- Cached positions (рассчитываются один раз, не на каждый тик) ---
+    // --- Cached positions ---
     private Point _boardAbsolutePos;
     private bool _positionsCached;
 
-    // --- Throttle: последняя ячейка превью, чтобы не перерисовывать зря ---
+    // --- Throttle: последняя ячейка превью ---
     private int _lastPreviewRow = -1;
     private int _lastPreviewCol = -1;
 
@@ -257,7 +257,6 @@ public partial class GamePage : ContentPage
         DrawBoard();
         DrawNextBlocks();
 
-        // Кэшируем позицию доски после первого layout-прохода
         _positionsCached = false;
         Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), CachePositions);
     }
@@ -272,7 +271,6 @@ public partial class GamePage : ContentPage
         _game.GameOver -= OnGameOver;
     }
 
-    // Вызывается один раз после layout — больше не пересчитываем на каждый тик
     private void CachePositions()
     {
         _boardAbsolutePos = GetAbsolutePosition(GameGrid);
@@ -313,7 +311,6 @@ public partial class GamePage : ContentPage
             }
         }
 
-        // Позиция сместилась — сбрасываем кэш
         _positionsCached = false;
     }
 
@@ -328,7 +325,6 @@ public partial class GamePage : ContentPage
                 var cell = _game.Board.Grid[r, c];
                 var newColor = cell.IsOccupied ? cell.CellColor : emptyColor;
 
-                // Перекрашиваем только изменившиеся ячейки
                 if (_cellViews[r, c].BackgroundColor != newColor)
                     _cellViews[r, c].BackgroundColor = newColor;
             }
@@ -336,7 +332,7 @@ public partial class GamePage : ContentPage
     }
 
     // -------------------------------------------------------------------------
-    // Preview (подсветка при перетаскивании)
+    // Preview
     // -------------------------------------------------------------------------
 
     private void ShowPreview(List<(int row, int col)> cells, Color blockColor)
@@ -365,15 +361,10 @@ public partial class GamePage : ContentPage
         _previewCells.Clear();
     }
 
-    private void ShowLineClearPreview(int blockIndex, int startRow, int startCol)
+    // Принимает уже готовый список линий (вычислен в фоне)
+    private void ShowLineClearPreviewFromLines(List<(bool isRow, int index)> lines)
     {
         ClearLineClearPreview();
-
-        if (blockIndex >= _game.NextBlocks.Count) return;
-
-        var block = _game.NextBlocks[blockIndex];
-        var lines = _game.Board.GetWouldClearLines(block, startRow, startCol);
-
         if (lines.Count == 0) return;
 
         foreach (var (isRow, idx) in lines)
@@ -404,7 +395,6 @@ public partial class GamePage : ContentPage
         var emptyColor = _themeService.Current.CellEmptyColor;
         foreach (var (r, c) in _lineClearPreviewCells)
         {
-            // Не трогаем ячейки, которые уже закрашены превью блока
             if (_previewCells.Contains((r, c))) continue;
 
             var cell = _game.Board.Grid[r, c];
@@ -415,7 +405,7 @@ public partial class GamePage : ContentPage
     }
 
     // -------------------------------------------------------------------------
-    // Hint (подсказка по тапу)
+    // Hint
     // -------------------------------------------------------------------------
 
     private void ShowHint(int blockIndex)
@@ -427,7 +417,6 @@ public partial class GamePage : ContentPage
         var block = _game.NextBlocks[blockIndex];
         _hintIndex = blockIndex;
 
-        // Считаем в фоновом потоке — 100 вызовов GetPreviewCells тяжелы для UI-потока
         Task.Run(() =>
         {
             var hintColor = Color.FromRgba(
@@ -455,7 +444,6 @@ public partial class GamePage : ContentPage
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                // Проверяем, что пользователь не отменил подсказку пока считали
                 if (_hintIndex != blockIndex) return;
 
                 _hintCells = cells;
@@ -487,8 +475,6 @@ public partial class GamePage : ContentPage
     // Drag — координаты
     // -------------------------------------------------------------------------
 
-    // Переводит позицию ghost-а в (row, col) доски.
-    // Использует кэшированную _boardAbsolutePos — никаких обходов дерева на тике.
     private (int row, int col, bool valid) GetBoardCell(int blockIndex)
     {
         if (_ghostView == null || !_positionsCached) return (-1, -1, false);
@@ -501,7 +487,6 @@ public partial class GamePage : ContentPage
         double blockPixelW = block.Cols * (MiniCellSize + 2);
         double blockPixelH = block.Rows * (MiniCellSize + 2);
 
-        // Блок центрирован внутри контейнера 100×100
         double blockCenterX = ghostLeft + (BlockAreaSize - blockPixelW) / 2.0 + blockPixelW / 2.0;
         double blockCenterY = ghostTop + (BlockAreaSize - blockPixelH) / 2.0 + blockPixelH / 2.0;
 
@@ -542,7 +527,6 @@ public partial class GamePage : ContentPage
                         _isDragging = true;
                         _draggingIndex = idx;
 
-                        // Обновляем кэш позиции на случай если layout изменился
                         CachePositions();
 
                         ClearHint();
@@ -567,12 +551,13 @@ public partial class GamePage : ContentPage
                     {
                         if (_ghostView == null || !_isDragging) break;
 
+                        // Двигаем ghost — это легко, делаем сразу
                         _ghostView.TranslationX = e.TotalX;
                         _ghostView.TranslationY = e.TotalY;
 
                         var (row, col, valid) = GetBoardCell(idx);
 
-                        // Пропускаем перерисовку, если ячейка не изменилась
+                        // Пропускаем, если ячейка не изменилась
                         if (row == _lastPreviewRow && col == _lastPreviewCol) break;
                         _lastPreviewRow = row;
                         _lastPreviewCol = col;
@@ -584,36 +569,60 @@ public partial class GamePage : ContentPage
                             break;
                         }
 
+                        // Захватываем всё необходимое для фонового потока
                         var block = _game.NextBlocks[idx];
-                        var preview = _game.Board.GetPreviewCells(block, row, col);
-                        int finalRow = row, finalCol = col;
+                        int capturedRow = row;
+                        int capturedCol = col;
+                        int capturedIdx = idx;
 
-                        // Допуск ±1 ячейка — если точно не встаёт, ищем соседа
-                        if (preview.Count == 0)
+                        // Вся тяжёлая логика — в фоне, UI не блокируем
+                        _ = Task.Run(() =>
                         {
-                            for (int dr = -1; dr <= 1 && preview.Count == 0; dr++)
-                                for (int dc = -1; dc <= 1 && preview.Count == 0; dc++)
-                                {
-                                    var p = _game.Board.GetPreviewCells(block, row + dr, col + dc);
-                                    if (p.Count > 0)
+                            var preview = _game.Board.GetPreviewCells(block, capturedRow, capturedCol);
+                            int finalRow = capturedRow;
+                            int finalCol = capturedCol;
+
+                            // Допуск ±1 ячейка
+                            if (preview.Count == 0)
+                            {
+                                for (int dr = -1; dr <= 1 && preview.Count == 0; dr++)
+                                    for (int dc = -1; dc <= 1 && preview.Count == 0; dc++)
                                     {
-                                        preview = p;
-                                        finalRow = row + dr;
-                                        finalCol = col + dc;
+                                        var p = _game.Board.GetPreviewCells(
+                                            block, capturedRow + dr, capturedCol + dc);
+                                        if (p.Count > 0)
+                                        {
+                                            preview = p;
+                                            finalRow = capturedRow + dr;
+                                            finalCol = capturedCol + dc;
+                                        }
                                     }
-                                }
-                        }
+                            }
 
-                        if (preview.Count > 0)
-                        {
-                            ShowPreview(preview, block.BlockColor);
-                            ShowLineClearPreview(idx, finalRow, finalCol);
-                        }
-                        else
-                        {
-                            ClearLineClearPreview();
-                            ClearPreview();
-                        }
+                            // Считаем линии тоже в фоне
+                            var lines = preview.Count > 0
+                                ? _game.Board.GetWouldClearLines(block, finalRow, finalCol)
+                                : new List<(bool isRow, int index)>();
+
+                            // На UI — только покраска, уже готовыми данными
+                            MainThread.BeginInvokeOnMainThread(() =>
+                            {
+                                // Проверяем актуальность: драг ещё идёт и ячейка не устарела
+                                if (!_isDragging || _draggingIndex != capturedIdx) return;
+                                if (_lastPreviewRow != capturedRow || _lastPreviewCol != capturedCol) return;
+
+                                if (preview.Count > 0)
+                                {
+                                    ShowPreview(preview, block.BlockColor);
+                                    ShowLineClearPreviewFromLines(lines);
+                                }
+                                else
+                                {
+                                    ClearLineClearPreview();
+                                    ClearPreview();
+                                }
+                            });
+                        });
                         break;
                     }
 
@@ -726,7 +735,7 @@ public partial class GamePage : ContentPage
     }
 
     // -------------------------------------------------------------------------
-    // Mini blocks (панель внизу)
+    // Mini blocks
     // -------------------------------------------------------------------------
 
     private void DrawNextBlocks()
@@ -790,8 +799,6 @@ public partial class GamePage : ContentPage
     // Helpers
     // -------------------------------------------------------------------------
 
-    // Обходит дерево элементов вверх до _rootAbsolute и суммирует позиции.
-    // Вызывается редко (кэшируется в _boardAbsolutePos).
     private Point GetAbsolutePosition(View view)
     {
         double x = 0, y = 0;
@@ -811,18 +818,27 @@ public partial class GamePage : ContentPage
     private async Task AnimateClearLines(List<(bool isRow, int index)> lines)
     {
         var tasks = new List<Task>();
+        // Дедупликация: ячейка на пересечении строки и столбца анимируется только один раз.
+        // Без этого два FadeToAsync на один BoxView оставляли Opacity = 0 после DrawBoard().
+        var animatedCells = new HashSet<(int row, int col)>();
 
         foreach (var (isRow, idx) in lines)
         {
             if (isRow)
             {
                 for (int c = 0; c < Board.Cols; c++)
-                    tasks.Add(AnimateCellDisappear(_cellViews[idx, c], c * 20));
+                {
+                    if (animatedCells.Add((idx, c)))
+                        tasks.Add(AnimateCellDisappear(_cellViews[idx, c], c * 20));
+                }
             }
             else
             {
                 for (int r = 0; r < Board.Rows; r++)
-                    tasks.Add(AnimateCellDisappear(_cellViews[idx, r], r * 20));
+                {
+                    if (animatedCells.Add((r, idx)))
+                        tasks.Add(AnimateCellDisappear(_cellViews[r, idx], r * 20));
+                }
             }
         }
 
@@ -836,7 +852,6 @@ public partial class GamePage : ContentPage
                 _cellViews[r, c].Opacity = 1;
     }
 
-    // Упрощённая анимация: просто гасим ячейку (быстрее чем Scale + Opacity)
     private static async Task AnimateCellDisappear(BoxView cell, int delayMs)
     {
         if (delayMs > 0) await Task.Delay(delayMs);
