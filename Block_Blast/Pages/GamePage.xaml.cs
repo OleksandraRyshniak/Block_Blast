@@ -11,9 +11,11 @@ public partial class GamePage : ContentPage
     private const int CellSize = 36;
     private const int BlockAreaSize = 100;
     private const int MiniCellSize = 22;
+
     private readonly ThemeService _themeService;
     private readonly ScoreService _scoreService;
     private readonly Game _game;
+
     private Label LblScoreTitle;
     private Label LblBestTitle;
     private Label LblScore;
@@ -22,20 +24,30 @@ public partial class GamePage : ContentPage
     private readonly ContentView[] BlockContainers = new ContentView[3];
     private BoxView[,] _cellViews;
     private AbsoluteLayout _rootAbsolute;
+
+    // --- Drag state ---
     private Border _ghostView;
     private int _draggingIndex = -1;
     private bool _isDragging;
     private Point _ghostStartPos;
 
+    // --- Preview state ---
     private List<(int row, int col)> _previewCells = new();
-
     private List<(int row, int col)> _lineClearPreviewCells = new();
-
     private static readonly Color LineClearHighlight = Color.FromArgb("#FFFFAA");
 
+    // --- Hint state ---
     private List<(int row, int col)> _hintCells = new();
-
     private int _hintIndex = -1;
+
+    // --- Cached positions (рассчитываются один раз, не на каждый тик) ---
+    private Point _boardAbsolutePos;
+    private bool _positionsCached;
+
+    // --- Throttle: последняя ячейка превью, чтобы не перерисовывать зря ---
+    private int _lastPreviewRow = -1;
+    private int _lastPreviewCol = -1;
+
     public GamePage(
         Player player,
         GameMode mode,
@@ -53,6 +65,10 @@ public partial class GamePage : ContentPage
         _game.LinesCleared += OnLinesCleared;
         _game.GameOver += OnGameOver;
     }
+
+    // -------------------------------------------------------------------------
+    // UI build
+    // -------------------------------------------------------------------------
 
     private void BuildUI()
     {
@@ -105,6 +121,17 @@ public partial class GamePage : ContentPage
             }
         };
 
+        var scoreGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star)
+            }
+        };
+        scoreGrid.Add(new VerticalStackLayout { Spacing = 4, Children = { LblScoreTitle, LblScore } }, 0, 0);
+        scoreGrid.Add(new VerticalStackLayout { Spacing = 4, Children = { LblBestTitle, LblBest } }, 1, 0);
+
         var scoreCard = new Border
         {
             BackgroundColor = Color.FromArgb("#1A1A2E"),
@@ -112,19 +139,8 @@ public partial class GamePage : ContentPage
             Stroke = new SolidColorBrush(Color.FromArgb("#00F5FF")),
             StrokeShape = new Microsoft.Maui.Controls.Shapes.Rectangle(),
             Padding = new Thickness(12, 10),
-            Content = new Grid
-            {
-                ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star)
-            }
-            }
+            Content = scoreGrid
         };
-
-        var scoreGrid = (Grid)scoreCard.Content;
-        scoreGrid.Add(new VerticalStackLayout { Spacing = 4, Children = { LblScoreTitle, LblScore } }, 0, 0);
-        scoreGrid.Add(new VerticalStackLayout { Spacing = 4, Children = { LblBestTitle, LblBest } }, 1, 0);
 
         GameGrid = new Grid
         {
@@ -179,11 +195,11 @@ public partial class GamePage : ContentPage
         var pageContentGrid = new Grid
         {
             RowDefinitions =
-        {
-            new RowDefinition(GridLength.Auto),
-            new RowDefinition(GridLength.Star),
-            new RowDefinition(GridLength.Auto)
-        },
+            {
+                new RowDefinition(GridLength.Auto),
+                new RowDefinition(GridLength.Star),
+                new RowDefinition(GridLength.Auto)
+            },
             Padding = new Thickness(16, 48, 16, 24),
             RowSpacing = 16
         };
@@ -199,6 +215,10 @@ public partial class GamePage : ContentPage
         Content = _rootAbsolute;
     }
 
+    // -------------------------------------------------------------------------
+    // Theme / localization
+    // -------------------------------------------------------------------------
+
     private void ApplyTheme()
     {
         var t = _themeService.Current;
@@ -206,20 +226,26 @@ public partial class GamePage : ContentPage
         bool isColorful = t.Name == AppResources.colorful;
 
         BackgroundColor = t.BackgroundColor;
-
         LblScoreTitle.TextColor = Colors.White;
         LblBestTitle.TextColor = t.TextColor;
-
-        
         LblScore.TextColor = t.AccentColor;
-
-     
         LblBest.TextColor = isLight
-            ? Color.FromArgb("#B8860B") 
+            ? Color.FromArgb("#B8860B")
             : isColorful
-                ? Color.FromArgb("#FFE500")  
-                : Colors.Gold;               
+                ? Color.FromArgb("#FFE500")
+                : Colors.Gold;
     }
+
+    private void ApplyLocalization()
+    {
+        LblScoreTitle.Text = AppResources.score;
+        LblBestTitle.Text = "🏆";
+    }
+
+    // -------------------------------------------------------------------------
+    // Lifecycle
+    // -------------------------------------------------------------------------
+
     protected override void OnAppearing()
     {
         base.OnAppearing();
@@ -230,6 +256,10 @@ public partial class GamePage : ContentPage
         _game.Start();
         DrawBoard();
         DrawNextBlocks();
+
+        // Кэшируем позицию доски после первого layout-прохода
+        _positionsCached = false;
+        Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), CachePositions);
     }
 
     protected override void OnDisappearing()
@@ -242,12 +272,16 @@ public partial class GamePage : ContentPage
         _game.GameOver -= OnGameOver;
     }
 
-    
-    private void ApplyLocalization()
+    // Вызывается один раз после layout — больше не пересчитываем на каждый тик
+    private void CachePositions()
     {
-        LblScoreTitle.Text = AppResources.score;
-        LblBestTitle.Text = "🏆";
+        _boardAbsolutePos = GetAbsolutePosition(GameGrid);
+        _positionsCached = true;
     }
+
+    // -------------------------------------------------------------------------
+    // Board
+    // -------------------------------------------------------------------------
 
     private void BuildBoard()
     {
@@ -262,7 +296,7 @@ public partial class GamePage : ContentPage
         for (int c = 0; c < Board.Cols; c++)
             GameGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = CellSize });
 
-        var theme = _themeService.Current;
+        var emptyColor = _themeService.Current.CellEmptyColor;
 
         for (int r = 0; r < Board.Rows; r++)
         {
@@ -270,7 +304,7 @@ public partial class GamePage : ContentPage
             {
                 var cell = new BoxView
                 {
-                    BackgroundColor = theme.CellEmptyColor,
+                    BackgroundColor = emptyColor,
                     Margin = new Thickness(1),
                     CornerRadius = 0
                 };
@@ -278,26 +312,38 @@ public partial class GamePage : ContentPage
                 GameGrid.Add(cell, c, r);
             }
         }
+
+        // Позиция сместилась — сбрасываем кэш
+        _positionsCached = false;
     }
 
     private void DrawBoard()
     {
-        var theme = _themeService.Current;
+        var emptyColor = _themeService.Current.CellEmptyColor;
+
         for (int r = 0; r < Board.Rows; r++)
+        {
             for (int c = 0; c < Board.Cols; c++)
             {
                 var cell = _game.Board.Grid[r, c];
-                _cellViews[r, c].BackgroundColor =
-                    cell.IsOccupied ? cell.CellColor : theme.CellEmptyColor;
+                var newColor = cell.IsOccupied ? cell.CellColor : emptyColor;
+
+                // Перекрашиваем только изменившиеся ячейки
+                if (_cellViews[r, c].BackgroundColor != newColor)
+                    _cellViews[r, c].BackgroundColor = newColor;
             }
+        }
     }
+
+    // -------------------------------------------------------------------------
+    // Preview (подсветка при перетаскивании)
+    // -------------------------------------------------------------------------
 
     private void ShowPreview(List<(int row, int col)> cells, Color blockColor)
     {
         ClearPreview();
         _previewCells = cells;
 
-        
         var previewColor = Color.FromRgba(
             blockColor.Red, blockColor.Green, blockColor.Blue, 0.40f);
 
@@ -308,12 +354,13 @@ public partial class GamePage : ContentPage
     private void ClearPreview()
     {
         if (_previewCells.Count == 0) return;
-        var theme = _themeService.Current;
+
+        var emptyColor = _themeService.Current.CellEmptyColor;
         foreach (var (r, c) in _previewCells)
         {
             var cell = _game.Board.Grid[r, c];
             _cellViews[r, c].BackgroundColor =
-                cell.IsOccupied ? cell.CellColor : theme.CellEmptyColor;
+                cell.IsOccupied ? cell.CellColor : emptyColor;
         }
         _previewCells.Clear();
     }
@@ -353,22 +400,23 @@ public partial class GamePage : ContentPage
     private void ClearLineClearPreview()
     {
         if (_lineClearPreviewCells.Count == 0) return;
-        var theme = _themeService.Current;
+
+        var emptyColor = _themeService.Current.CellEmptyColor;
         foreach (var (r, c) in _lineClearPreviewCells)
         {
-            if (_previewCells.Contains((r, c)))
-            {
-               
-            }
-            else
-            {
-                var cell = _game.Board.Grid[r, c];
-                _cellViews[r, c].BackgroundColor =
-                    cell.IsOccupied ? cell.CellColor : theme.CellEmptyColor;
-            }
+            // Не трогаем ячейки, которые уже закрашены превью блока
+            if (_previewCells.Contains((r, c))) continue;
+
+            var cell = _game.Board.Grid[r, c];
+            _cellViews[r, c].BackgroundColor =
+                cell.IsOccupied ? cell.CellColor : emptyColor;
         }
         _lineClearPreviewCells.Clear();
     }
+
+    // -------------------------------------------------------------------------
+    // Hint (подсказка по тапу)
+    // -------------------------------------------------------------------------
 
     private void ShowHint(int blockIndex)
     {
@@ -377,67 +425,88 @@ public partial class GamePage : ContentPage
         if (blockIndex >= _game.NextBlocks.Count) return;
 
         var block = _game.NextBlocks[blockIndex];
-        var theme = _themeService.Current;
-
-        var hintColor = Color.FromRgba(
-            block.BlockColor.Red,
-            block.BlockColor.Green,
-            block.BlockColor.Blue,
-            0.18f);
-
         _hintIndex = blockIndex;
 
-        for (int r = 0; r < Board.Rows; r++)
+        // Считаем в фоновом потоке — 100 вызовов GetPreviewCells тяжелы для UI-потока
+        Task.Run(() =>
         {
-            for (int c = 0; c < Board.Cols; c++)
+            var hintColor = Color.FromRgba(
+                block.BlockColor.Red,
+                block.BlockColor.Green,
+                block.BlockColor.Blue,
+                0.18f);
+
+            var cells = new List<(int, int)>();
+
+            for (int r = 0; r < Board.Rows; r++)
             {
-                var cells = _game.Board.GetPreviewCells(block, r, c);
-                if (cells.Count == 0) continue;
-                foreach (var (pr, pc) in cells)
+                for (int c = 0; c < Board.Cols; c++)
                 {
-                    if (!_hintCells.Contains((pr, pc)))
+                    var preview = _game.Board.GetPreviewCells(block, r, c);
+                    if (preview.Count == 0) continue;
+
+                    foreach (var (pr, pc) in preview)
                     {
-                        _hintCells.Add((pr, pc));
-                        if (!_game.Board.Grid[pr, pc].IsOccupied)
-                            _cellViews[pr, pc].BackgroundColor = hintColor;
+                        if (!cells.Contains((pr, pc)))
+                            cells.Add((pr, pc));
                     }
                 }
             }
-        }
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                // Проверяем, что пользователь не отменил подсказку пока считали
+                if (_hintIndex != blockIndex) return;
+
+                _hintCells = cells;
+                foreach (var (r, c) in _hintCells)
+                {
+                    if (!_game.Board.Grid[r, c].IsOccupied)
+                        _cellViews[r, c].BackgroundColor = hintColor;
+                }
+            });
+        });
     }
 
     private void ClearHint()
     {
         if (_hintCells.Count == 0) return;
-        var theme = _themeService.Current;
+
+        var emptyColor = _themeService.Current.CellEmptyColor;
         foreach (var (r, c) in _hintCells)
         {
             var cell = _game.Board.Grid[r, c];
             _cellViews[r, c].BackgroundColor =
-                cell.IsOccupied ? cell.CellColor : theme.CellEmptyColor;
+                cell.IsOccupied ? cell.CellColor : emptyColor;
         }
         _hintCells.Clear();
         _hintIndex = -1;
     }
+
+    // -------------------------------------------------------------------------
+    // Drag — координаты
+    // -------------------------------------------------------------------------
+
+    // Переводит позицию ghost-а в (row, col) доски.
+    // Использует кэшированную _boardAbsolutePos — никаких обходов дерева на тике.
     private (int row, int col, bool valid) GetBoardCell(int blockIndex)
     {
-        if (_ghostView == null) return (-1, -1, false);
+        if (_ghostView == null || !_positionsCached) return (-1, -1, false);
 
         var block = _game.NextBlocks[blockIndex];
-        var boardPos = GetAbsolutePosition(GameGrid);
 
         double ghostLeft = _ghostStartPos.X + _ghostView.TranslationX;
         double ghostTop = _ghostStartPos.Y + _ghostView.TranslationY;
+
         double blockPixelW = block.Cols * (MiniCellSize + 2);
         double blockPixelH = block.Rows * (MiniCellSize + 2);
-        double offsetX = (BlockAreaSize - blockPixelW) / 2.0;
-        double offsetY = (BlockAreaSize - blockPixelH) / 2.0;
-        double blockLeft = ghostLeft + offsetX;
-        double blockTop = ghostTop + offsetY;
-        double blockCenterX = blockLeft + blockPixelW / 2.0;
-        double blockCenterY = blockTop + blockPixelH / 2.0;
-        double relX = blockCenterX - boardPos.X;
-        double relY = blockCenterY - boardPos.Y;
+
+        // Блок центрирован внутри контейнера 100×100
+        double blockCenterX = ghostLeft + (BlockAreaSize - blockPixelW) / 2.0 + blockPixelW / 2.0;
+        double blockCenterY = ghostTop + (BlockAreaSize - blockPixelH) / 2.0 + blockPixelH / 2.0;
+
+        double relX = blockCenterX - _boardAbsolutePos.X;
+        double relY = blockCenterY - _boardAbsolutePos.Y;
 
         int col = (int)(relX / CellSize) - block.Cols / 2;
         int row = (int)(relY / CellSize) - block.Rows / 2;
@@ -445,63 +514,10 @@ public partial class GamePage : ContentPage
         bool valid = row >= 0 && row < Board.Rows && col >= 0 && col < Board.Cols;
         return (row, col, valid);
     }
-    private void UpdateBlockAvailability()
-    {
-        for (int i = 0; i < 3; i++)
-        {
-            if (i >= _game.NextBlocks.Count) continue;
-            var block = _game.NextBlocks[i];
-            bool canPlace = _game.Board.CanPlaceAnywhere(block);
-            BlockContainers[i].Opacity = canPlace ? 1.0 : 0.35;
-        }
-    }
 
-    private void DrawNextBlocks()
-    {
-        ClearHint();
-        for (int i = 0; i < 3; i++)
-            DrawMiniBlock(i);
-        UpdateBlockAvailability();
-    }
-
-    private void DrawMiniBlock(int index)
-    {
-        var container = BlockContainers[index];
-        container.Content = null;
-        container.GestureRecognizers.Clear();
-
-        if (index >= _game.NextBlocks.Count) return;
-
-        var block = _game.NextBlocks[index];
-
-        var grid = new Grid
-        {
-            RowSpacing = 0,
-            ColumnSpacing = 0,
-            HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center,
-            InputTransparent = true
-        };
-
-        for (int r = 0; r < block.Rows; r++)
-            grid.RowDefinitions.Add(new RowDefinition { Height = MiniCellSize });
-        for (int c = 0; c < block.Cols; c++)
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = MiniCellSize });
-
-        foreach (var (dr, dc) in block.GetCells())
-        {
-            grid.Add(new Border
-            {
-                BackgroundColor = block.BlockColor,
-                StrokeThickness = 0,
-                Padding = 0,
-                Margin = 1
-            }, dc, dr);
-        }
-
-        container.Content = grid;
-        SetupDrag(index);
-    }
+    // -------------------------------------------------------------------------
+    // Drag — жест
+    // -------------------------------------------------------------------------
 
     private void SetupDrag(int idx)
     {
@@ -510,16 +526,12 @@ public partial class GamePage : ContentPage
         var tap = new TapGestureRecognizer();
         tap.Tapped += (s, e) =>
         {
-
-            if (_hintIndex == idx)
-                ClearHint();
-            else
-                ShowHint(idx);
+            if (_hintIndex == idx) ClearHint();
+            else ShowHint(idx);
         };
         container.GestureRecognizers.Add(tap);
 
         var pan = new PanGestureRecognizer();
-
         pan.PanUpdated += async (s, e) =>
         {
             switch (e.StatusType)
@@ -530,7 +542,12 @@ public partial class GamePage : ContentPage
                         _isDragging = true;
                         _draggingIndex = idx;
 
+                        // Обновляем кэш позиции на случай если layout изменился
+                        CachePositions();
+
                         ClearHint();
+                        _lastPreviewRow = -1;
+                        _lastPreviewCol = -1;
 
                         _ = container.FadeToAsync(0.25, 100);
 
@@ -554,38 +571,43 @@ public partial class GamePage : ContentPage
                         _ghostView.TranslationY = e.TotalY;
 
                         var (row, col, valid) = GetBoardCell(idx);
-                        if (valid)
+
+                        // Пропускаем перерисовку, если ячейка не изменилась
+                        if (row == _lastPreviewRow && col == _lastPreviewCol) break;
+                        _lastPreviewRow = row;
+                        _lastPreviewCol = col;
+
+                        if (!valid)
                         {
-                            var block = _game.NextBlocks[idx];
+                            ClearLineClearPreview();
+                            ClearPreview();
+                            break;
+                        }
 
-                            var preview = _game.Board.GetPreviewCells(block, row, col);
-                            int finalRow = row, finalCol = col;
+                        var block = _game.NextBlocks[idx];
+                        var preview = _game.Board.GetPreviewCells(block, row, col);
+                        int finalRow = row, finalCol = col;
 
-                            if (preview.Count == 0)
-                            {
-                                for (int dr = -1; dr <= 1 && preview.Count == 0; dr++)
-                                    for (int dc = -1; dc <= 1 && preview.Count == 0; dc++)
+                        // Допуск ±1 ячейка — если точно не встаёт, ищем соседа
+                        if (preview.Count == 0)
+                        {
+                            for (int dr = -1; dr <= 1 && preview.Count == 0; dr++)
+                                for (int dc = -1; dc <= 1 && preview.Count == 0; dc++)
+                                {
+                                    var p = _game.Board.GetPreviewCells(block, row + dr, col + dc);
+                                    if (p.Count > 0)
                                     {
-                                        var p = _game.Board.GetPreviewCells(block, row + dr, col + dc);
-                                        if (p.Count > 0)
-                                        {
-                                            preview = p;
-                                            finalRow = row + dr;
-                                            finalCol = col + dc;
-                                        }
+                                        preview = p;
+                                        finalRow = row + dr;
+                                        finalCol = col + dc;
                                     }
-                            }
+                                }
+                        }
 
-                            if (preview.Count > 0)
-                            {
-                                ShowPreview(preview, block.BlockColor);
-                                ShowLineClearPreview(idx, finalRow, finalCol);
-                            }
-                            else
-                            {
-                                ClearLineClearPreview();
-                                ClearPreview();
-                            }
+                        if (preview.Count > 0)
+                        {
+                            ShowPreview(preview, block.BlockColor);
+                            ShowLineClearPreview(idx, finalRow, finalCol);
                         }
                         else
                         {
@@ -645,6 +667,8 @@ public partial class GamePage : ContentPage
                         }
 
                         _draggingIndex = -1;
+                        _lastPreviewRow = -1;
+                        _lastPreviewCol = -1;
                         break;
                     }
             }
@@ -653,9 +677,14 @@ public partial class GamePage : ContentPage
         container.GestureRecognizers.Add(pan);
     }
 
+    // -------------------------------------------------------------------------
+    // Ghost view
+    // -------------------------------------------------------------------------
+
     private Border BuildGhostView(int idx)
     {
         var block = _game.NextBlocks[idx];
+
         var grid = new Grid
         {
             RowSpacing = 0,
@@ -696,6 +725,73 @@ public partial class GamePage : ContentPage
         };
     }
 
+    // -------------------------------------------------------------------------
+    // Mini blocks (панель внизу)
+    // -------------------------------------------------------------------------
+
+    private void DrawNextBlocks()
+    {
+        ClearHint();
+        for (int i = 0; i < 3; i++)
+            DrawMiniBlock(i);
+        UpdateBlockAvailability();
+    }
+
+    private void DrawMiniBlock(int index)
+    {
+        var container = BlockContainers[index];
+        container.Content = null;
+        container.GestureRecognizers.Clear();
+
+        if (index >= _game.NextBlocks.Count) return;
+
+        var block = _game.NextBlocks[index];
+
+        var grid = new Grid
+        {
+            RowSpacing = 0,
+            ColumnSpacing = 0,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            InputTransparent = true
+        };
+
+        for (int r = 0; r < block.Rows; r++)
+            grid.RowDefinitions.Add(new RowDefinition { Height = MiniCellSize });
+        for (int c = 0; c < block.Cols; c++)
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = MiniCellSize });
+
+        foreach (var (dr, dc) in block.GetCells())
+        {
+            grid.Add(new Border
+            {
+                BackgroundColor = block.BlockColor,
+                StrokeThickness = 0,
+                Padding = 0,
+                Margin = 1
+            }, dc, dr);
+        }
+
+        container.Content = grid;
+        SetupDrag(index);
+    }
+
+    private void UpdateBlockAvailability()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            if (i >= _game.NextBlocks.Count) continue;
+            var block = _game.NextBlocks[i];
+            BlockContainers[i].Opacity = _game.Board.CanPlaceAnywhere(block) ? 1.0 : 0.35;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    // Обходит дерево элементов вверх до _rootAbsolute и суммирует позиции.
+    // Вызывается редко (кэшируется в _boardAbsolutePos).
     private Point GetAbsolutePosition(View view)
     {
         double x = 0, y = 0;
@@ -708,6 +804,10 @@ public partial class GamePage : ContentPage
         return new Point(x, y);
     }
 
+    // -------------------------------------------------------------------------
+    // Animations
+    // -------------------------------------------------------------------------
+
     private async Task AnimateClearLines(List<(bool isRow, int index)> lines)
     {
         var tasks = new List<Task>();
@@ -716,22 +816,13 @@ public partial class GamePage : ContentPage
         {
             if (isRow)
             {
-
                 for (int c = 0; c < Board.Cols; c++)
-                {
-                    var cell = _cellViews[idx, c];
-                    int delay = c * 25;
-                    tasks.Add(AnimateCellDisappear(cell, delay));
-                }
+                    tasks.Add(AnimateCellDisappear(_cellViews[idx, c], c * 20));
             }
             else
             {
                 for (int r = 0; r < Board.Rows; r++)
-                {
-                    var cell = _cellViews[idx, r];
-                    int delay = r * 25;
-                    tasks.Add(AnimateCellDisappear(cell, delay));
-                }
+                    tasks.Add(AnimateCellDisappear(_cellViews[idx, r], r * 20));
             }
         }
 
@@ -739,21 +830,23 @@ public partial class GamePage : ContentPage
 
         DrawBoard();
 
+        // Восстанавливаем opacity всех ячеек
         for (int r = 0; r < Board.Rows; r++)
             for (int c = 0; c < Board.Cols; c++)
                 _cellViews[r, c].Opacity = 1;
     }
 
+    // Упрощённая анимация: просто гасим ячейку (быстрее чем Scale + Opacity)
     private static async Task AnimateCellDisappear(BoxView cell, int delayMs)
     {
-        await Task.Delay(delayMs);
-        await cell.ScaleToAsync(0.1, 120, Easing.CubicIn);
-        cell.Opacity = 0;
+        if (delayMs > 0) await Task.Delay(delayMs);
+        await cell.FadeToAsync(0, 100, Easing.CubicIn);
         cell.Scale = 1;
     }
-   private async Task ShowComboLabel(int combo)
+
+    private async Task ShowComboLabel(int combo)
     {
-        if (combo < 2) return; 
+        if (combo < 2) return;
 
         string text = combo switch
         {
@@ -781,9 +874,8 @@ public partial class GamePage : ContentPage
             }
         };
 
-        var boardPos = GetAbsolutePosition(GameGrid);
-        double cx = boardPos.X + (Board.Cols * CellSize) / 2.0 - 80;
-        double cy = boardPos.Y + (Board.Rows * CellSize) / 2.0 - 20;
+        double cx = _boardAbsolutePos.X + (Board.Cols * CellSize) / 2.0 - 80;
+        double cy = _boardAbsolutePos.Y + (Board.Rows * CellSize) / 2.0 - 20;
 
         AbsoluteLayout.SetLayoutBounds(label, new Rect(cx, cy, 200, 50));
         AbsoluteLayout.SetLayoutFlags(label, AbsoluteLayoutFlags.None);
@@ -801,6 +893,50 @@ public partial class GamePage : ContentPage
 
         _rootAbsolute.Remove(label);
     }
+
+    private async Task ShowBoardClearLabel()
+    {
+        var label = new Label
+        {
+            Text = "✨ " + AppResources.board_clear + " +360",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.Gold,
+            HorizontalOptions = LayoutOptions.Center,
+            Opacity = 0,
+            Shadow = new Shadow
+            {
+                Brush = new SolidColorBrush(Colors.OrangeRed),
+                Offset = new Point(2, 2),
+                Radius = 6,
+                Opacity = 0.9f
+            }
+        };
+
+        double cx = _boardAbsolutePos.X + (Board.Cols * CellSize) / 2.0 - 110;
+        double cy = _boardAbsolutePos.Y + 30;
+
+        AbsoluteLayout.SetLayoutBounds(label, new Rect(cx, cy, 240, 50));
+        AbsoluteLayout.SetLayoutFlags(label, AbsoluteLayoutFlags.None);
+        _rootAbsolute.Add(label);
+
+        await Task.WhenAll(
+            label.FadeToAsync(1, 200),
+            label.ScaleToAsync(1.15, 200, Easing.CubicOut));
+
+        await Task.Delay(700);
+
+        await Task.WhenAll(
+            label.FadeToAsync(0, 350),
+            label.TranslateToAsync(0, -40, 350, Easing.CubicIn));
+
+        _rootAbsolute.Remove(label);
+    }
+
+    // -------------------------------------------------------------------------
+    // Game event handlers
+    // -------------------------------------------------------------------------
+
     private void OnScoreChanged(int score)
     {
         MainThread.BeginInvokeOnMainThread(() =>
@@ -839,45 +975,6 @@ public partial class GamePage : ContentPage
             await Task.WhenAll(tasks);
         });
     }
-    private async Task ShowBoardClearLabel()
-    {
-        var label = new Label
-        {
-            Text = "✨ "+AppResources.board_clear+" +360",
-            FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.Gold,
-            HorizontalOptions = LayoutOptions.Center,
-            Opacity = 0,
-            Shadow = new Shadow
-            {
-                Brush = new SolidColorBrush(Colors.OrangeRed),
-                Offset = new Point(2, 2),
-                Radius = 6,
-                Opacity = 0.9f
-            }
-        };
-
-        var boardPos = GetAbsolutePosition(GameGrid);
-        double cx = boardPos.X + (Board.Cols * CellSize) / 2.0 - 110;
-        double cy = boardPos.Y + 30;
-
-        AbsoluteLayout.SetLayoutBounds(label, new Rect(cx, cy, 240, 50));
-        AbsoluteLayout.SetLayoutFlags(label, AbsoluteLayoutFlags.None);
-        _rootAbsolute.Add(label);
-
-        await Task.WhenAll(
-            label.FadeToAsync(1, 200),
-            label.ScaleToAsync(1.15, 200, Easing.CubicOut));
-
-        await Task.Delay(700);
-
-        await Task.WhenAll(
-            label.FadeToAsync(0, 350),
-            label.TranslateToAsync(0, -40, 350, Easing.CubicIn));
-
-        _rootAbsolute.Remove(label);
-    }
 
     private void OnGameOver()
     {
@@ -885,7 +982,6 @@ public partial class GamePage : ContentPage
         {
             _scoreService.Save(_game.Player);
 
-            
             string stats =
                 $"{AppResources.score}: {_game.Player.Score:N0}\n" +
                 $"{AppResources.lines}: {_game.Player.TotalLinesCleared}\n" +
